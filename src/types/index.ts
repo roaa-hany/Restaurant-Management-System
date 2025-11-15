@@ -1,0 +1,57 @@
+/**
+ * Type definitions for the Restaurant Management System
+ */
+
+export interface MenuItem {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  category: MenuCategory;
+  imageUrl: string;
+  ingredients: string[];
+  allergens: string[];
+}
+
+export type MenuCategory = 'appetizer' | 'main' | 'dessert' | 'beverage';
+
+export interface Reservation {
+  id: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  tableNumber: number;
+  reservationDate: string; // ISO date string
+  reservationTime: string; // HH:mm format
+  numberOfGuests: number;
+  status: 'pending' | 'confirmed' | 'cancelled';
+}
+
+export interface Order {
+  id: string;
+  tableNumber: number;
+  items: OrderItem[];
+  status: 'pending' | 'preparing' | 'ready' | 'completed';
+  createdAt: string; // ISO date string
+}
+
+export interface OrderItem {
+  menuItemId: string;
+  quantity: number;
+  price: number;
+  notes?: string;
+}
+
+export interface Bill {
+  id: string;
+  orderId: string;
+  tableNumber: number;
+  items: OrderItem[];
+  subtotal: number;
+  tax: number;
+  total: number;
+  paymentMethod: 'cash' | 'card' | 'digital';
+  paymentStatus: 'pending' | 'paid';
+  createdAt: string;
+}
+

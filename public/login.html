@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Login - Egyptian Restaurant</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .login-container {
+            max-width: 400px;
+            margin: 5rem auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .login-container h2 {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: #667eea;
+        }
+        .role-selector {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .role-btn {
+            flex: 1;
+            padding: 0.75rem;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1rem;
+        }
+        .role-btn.active {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+        .role-btn:hover {
+            border-color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🍽️ Egyptian Restaurant - Staff Login</h1>
+    </header>
+
+    <main>
+        <div class="login-container">
+            <h2>Staff Login</h2>
+            
+            <div class="role-selector">
+                <button class="role-btn active" data-role="waiter">Waiter</button>
+                <button class="role-btn" data-role="manager">Manager</button>
+            </div>
+
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Login</button>
+            </form>
+
+            <div id="login-message" class="message"></div>
+
+            <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #e0e0e0; text-align: center; color: #666; font-size: 0.9rem;">
+                <p><strong>Demo Credentials:</strong></p>
+                <p>Waiter: username: <code>waiter</code>, password: <code>waiter123</code></p>
+                <p>Manager: username: <code>manager</code>, password: <code>manager123</code></p>
+            </div>
+        </div>
+    </main>
+
+    <script type="module" src="js/login.js"></script>
+</body>
+</html>
+
