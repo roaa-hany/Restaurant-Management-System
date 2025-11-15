@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Waiter Dashboard - Egyptian Restaurant</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        .logout-btn {
+            padding: 0.5rem 1.5rem;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        .logout-btn:hover {
+            background: #c82333;
+        }
+        .dashboard-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .dashboard-nav {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 1rem;
+        }
+        .nav-btn {
+            padding: 0.75rem 1.5rem;
+            background: #99999c;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        .nav-btn.active {
+            background: #667eea;
+            color: white;
+        }
+        .nav-btn:hover:not(.active) {
+            background: #464646;
+        }
+        .view {
+            display: none;
+        }
+        .view.active {
+            display: block;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-align: center;
+            border-left: 4px solid #667eea;
+        }
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .table-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .table-card {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .table-card.occupied {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+        }
+        .table-card.available {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+        }
+        .table-card.need-assistance {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+        }
+        .table-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        .table-status {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+        .orders-list {
+            display: grid;
+            gap: 1rem;
+        }
+        .order-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+        .order-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .order-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        .btn:hover {
+            opacity: 0.9;
+        }
+        .order-items {
+            margin-top: 1rem;
+        }
+        .order-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #eee;
+        }
+        .performance-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+        .metric-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+        .message {
+            padding: 1rem;
+            border-radius: 5px;
+            margin: 1rem 0;
+        }
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>👨‍💼 Waiter Dashboard</h1>
+    </header>
+
+    <main>
+        <div class="dashboard-header">
+            <h2>Welcome, <span id="waiter-name">Waiter</span>!</h2>
+            <button class="logout-btn" id="logout-btn">Logout</button>
+        </div>
+
+        <div class="dashboard-content">
+            <div class="dashboard-nav">
+                <button class="nav-btn active" data-view="overview">Overview</button>
+                <button class="nav-btn" data-view="tables">Table Management</button>
+                <button class="nav-btn" data-view="orders">Order Management</button>
+                <button class="nav-btn" data-view="performance">Performance</button>
+            </div>
+
+            <!-- Overview View -->
+            <div id="overview-view" class="view active">
+                <h2>Dashboard Overview</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="active-tables-count">0</div>
+                        <div class="stat-label">Active Tables</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="pending-orders-count">0</div>
+                        <div class="stat-label">Pending Orders</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="today-revenue">0 EGP</div>
+                        <div class="stat-label">Today's Revenue</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="avg-service-time">0 min</div>
+                        <div class="stat-label">Avg. Service Time</div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 2rem;">
+                    <h3>Quick Actions</h3>
+                    <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                        <a href="waiter.html" class="btn btn-primary" style="text-decoration: none;">Go to Billing System</a>
+                        <button class="btn btn-success" id="new-order-btn">Create New Order</button>
+                        <button class="btn btn-warning" id="view-tables-btn">View Tables</button>
+                    </div>
+                </div>
+
+                <div style="margin-top: 2rem;">
+                    <h3>Recent Activity</h3>
+                    <div id="recent-activity" class="orders-list">
+                        <!-- Recent activity will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table Management View -->
+            <div id="tables-view" class="view">
+                <h2>Table Management</h2>
+                <div class="table-grid" id="tables-container">
+                    <!-- Tables will be populated here -->
+                </div>
+            </div>
+
+            <!-- Order Management View -->
+            <div id="orders-view" class="view">
+                <h2>Order Management</h2>
+                <div class="orders-list" id="orders-container">
+                    <!-- Orders will be populated here -->
+                </div>
+            </div>
+
+            <!-- Performance View -->
+            <div id="performance-view" class="view">
+                <h2>Performance Metrics</h2>
+                <div class="performance-metrics">
+                    <div class="metric-card">
+                        <div class="metric-value" id="total-tables-served">0</div>
+                        <div class="stat-label">Total Tables Served Today</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="total-revenue">0 EGP</div>
+                        <div class="stat-label">Total Revenue Today</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="customer-rating">0.0</div>
+                        <div class="stat-label">Average Customer Rating</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="order-accuracy">100%</div>
+                        <div class="stat-label">Order Accuracy</div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 2rem;">
+                    <h3>Recent Feedback</h3>
+                    <div id="feedback-list">
+                        <!-- Feedback will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <div id="dashboard-message" class="message"></div>
+        </div>
+        <!-- Order Creation Modal -->
+        <div id="order-modal" class="modal">
+            <div class="modal-content" style="max-width: 600px;">
+                <span class="close" id="close-order-modal">&times;</span>
+                <h2>Create New Order</h2>
+                <form id="order-form">
+                    <div class="form-group">
+                        <label for="order-table">Table Number *</label>
+                        <select id="order-table" name="tableNumber" required>
+                            <option value="">Select a table</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="order-customer">Customer Name</label>
+                        <input type="text" id="order-customer" name="customerName" placeholder="Optional">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Menu Items</label>
+                        <div id="menu-items-container" class="menu-items-list">
+                            <!-- Menu items will be populated here -->
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <h4>Selected Items</h4>
+                        <div id="selected-items" class="selected-items">
+                            <!-- Selected items will appear here -->
+                        </div>
+                        <div id="order-total" class="order-total">
+                            Total: <span>0.00</span> EGP
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="cancel-order">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Create Order</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Table Details Modal -->
+        <div id="table-modal" class="modal">
+            <div class="modal-content" style="max-width: 500px;">
+                <span class="close" id="close-table-modal">&times;</span>
+                <h2>Table <span id="modal-table-number"></span></h2>
+                <div id="table-details">
+                    <!-- Table details will be populated here -->
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-primary" id="create-order-btn">Create Order</button>
+                    <button class="btn btn-warning" id="request-assistance-btn">Request Assistance</button>
+                    <button class="btn btn-success" id="mark-available-btn">Mark as Available</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script type="module" src="js/waiter-dashboard.js"></script>
+</body>
+</html>

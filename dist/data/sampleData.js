@@ -3,7 +3,7 @@
  * Sample data for the Restaurant Management System
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sampleOrders = exports.sampleReservations = exports.sampleMenuItems = void 0;
+exports.sampleTables = exports.sampleOrders = exports.sampleReservations = exports.sampleMenuItems = void 0;
 exports.sampleMenuItems = [
     {
         id: '1',
@@ -88,3 +88,15 @@ exports.sampleMenuItems = [
 ];
 exports.sampleReservations = [];
 exports.sampleOrders = [];
+exports.sampleTables = [
+    { id: 'table_1', number: 1, capacity: 2, status: 'available' },
+    { id: 'table_2', number: 2, capacity: 4, status: 'available' },
+    { id: 'table_3', number: 3, capacity: 4, status: 'available' },
+    { id: 'table_4', number: 4, capacity: 6, status: 'available' },
+    { id: 'table_5', number: 5, capacity: 2, status: 'available' },
+    { id: 'table_6', number: 6, capacity: 4, status: 'available' },
+    { id: 'table_7', number: 7, capacity: 8, status: 'available' },
+    { id: 'table_8', number: 8, capacity: 4, status: 'available' },
+    { id: 'table_9', number: 9, capacity: 6, status: 'available' },
+    { id: 'table_10', number: 10, capacity: 2, status: 'available' }
+];
