@@ -22,6 +22,17 @@ app.use(express.static('public'));
 let reservations: Reservation[] = [...sampleReservations];
 let orders: Order[] = [...sampleOrders];
 let tables: Table[] = [...sampleTables];
+
+// Export data stores for testing
+export function resetDataStores() {
+  reservations = [...sampleReservations];
+  orders = [...sampleOrders];
+  tables = [...sampleTables];
+}
+
+export function getDataStores() {
+  return { reservations, orders, tables };
+}
 // ==================== MENU ENDPOINTS ====================
 
 /**
@@ -306,12 +317,17 @@ app.post('/api/bills/generate', (req: Request, res: Response) => {
  * Processes payment for a bill and updates table status
  */
 app.post('/api/bills/:id/pay', (req: Request, res: Response) => {
-  const { paymentMethod } = req.body;
+  const { paymentMethod, orderId } = req.body;
   
-  // Update order status to paid
-  const billId = req.params.id;
-  const orderId = billId.replace('bill_', 'order_');
-  const order = orders.find(o => o.id === orderId);
+  // Find order by orderId from request body (passed from frontend)
+  // If not provided, try to extract from billId (for backward compatibility)
+  let targetOrderId = orderId;
+  if (!targetOrderId) {
+    const billId = req.params.id;
+    targetOrderId = billId.replace('bill_', 'order_');
+  }
+  
+  const order = orders.find(o => o.id === targetOrderId);
   
   if (order) {
     order.status = 'paid';
@@ -407,10 +423,15 @@ app.post('/api/auth/login', (req: Request, res: Response) => {
   });
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-  console.log(`API endpoints available at http://localhost:${PORT}/api`);
-  console.log(`Customer menu: http://localhost:${PORT}/index.html`);
-  console.log(`Staff login: http://localhost:${PORT}/login.html`);
-});
+// Export app for testing
+export { app };
+
+// Start server only if this file is run directly
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`API endpoints available at http://localhost:${PORT}/api`);
+    console.log(`Customer menu: http://localhost:${PORT}/index.html`);
+    console.log(`Staff login: http://localhost:${PORT}/login.html`);
+  });
+}
