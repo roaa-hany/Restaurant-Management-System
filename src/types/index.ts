@@ -31,8 +31,10 @@ export interface Order {
   id: string;
   tableNumber: number;
   items: OrderItem[];
-  status: 'pending' | 'preparing' | 'ready' | 'completed';
+  status: 'pending' | 'preparing' | 'ready' | 'completed' | 'served' | 'paid';
   createdAt: string; // ISO date string
+  assignedWaiter?: string;
+  customerName?: string;
 }
 
 export interface OrderItem {
@@ -55,3 +57,11 @@ export interface Bill {
   createdAt: string;
 }
 
+export interface Table {
+  id: string;
+  number: number;
+  capacity: number;
+  status: 'available' | 'occupied' | 'reserved' | 'need-assistance';
+  assignedWaiter?: string;
+  currentOrder?: string;
+}

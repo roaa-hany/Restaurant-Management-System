@@ -51,7 +51,9 @@
                     </div>
                     <div class="form-group">
                         <label for="tableNumber">Table Number *</label>
-                        <input type="number" id="tableNumber" name="tableNumber" min="1" max="20" required>
+                        <select id="tableNumber" name="tableNumber" required>
+                            <option value="">Loading available tables...</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label for="reservationDate">Date *</label>

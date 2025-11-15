@@ -5,8 +5,8 @@
 
 import express, { Request, Response } from 'express';
 import cors from 'cors';
-import { sampleMenuItems, sampleReservations, sampleOrders } from './data/sampleData';
-import { MenuItem, Reservation, Order, Bill, OrderItem } from './types';
+import { sampleMenuItems, sampleReservations, sampleOrders, sampleTables } from './data/sampleData';
+import { MenuItem, Reservation, Order, Bill, Table, OrderItem } from './types';
 
 const app = express();
 const PORT = 3000;
@@ -21,7 +21,7 @@ app.use(express.static('public'));
 // For production, this should be replaced with a database (MongoDB, PostgreSQL, etc.)
 let reservations: Reservation[] = [...sampleReservations];
 let orders: Order[] = [...sampleOrders];
-
+let tables: Table[] = [...sampleTables];
 // ==================== MENU ENDPOINTS ====================
 
 /**
@@ -42,6 +42,75 @@ app.get('/api/menu/:id', (req: Request, res: Response) => {
     return res.status(404).json({ error: 'Menu item not found' });
   }
   res.json(item);
+});
+
+// ==================== TABLE ENDPOINTS ====================
+
+/**
+ * GET /api/tables
+ * Returns all tables
+ */
+app.get('/api/tables', (req: Request, res: Response) => {
+  res.json(tables);
+});
+
+/**
+ * GET /api/tables/available
+ * Returns available tables for reservations
+ */
+app.get('/api/tables/available', (req: Request, res: Response) => {
+  const availableTables = tables.filter(table => table.status === 'available');
+  res.json(availableTables);
+});
+
+/**
+ * PUT /api/tables/:id/status
+ * Updates table status
+ */
+app.put('/api/tables/:id/status', (req: Request, res: Response) => {
+  const table = tables.find(t => t.id === req.params.id);
+  if (!table) {
+    return res.status(404).json({ error: 'Table not found' });
+  }
+
+  const { status, assignedWaiter } = req.body;
+  
+  if (status) table.status = status;
+  if (assignedWaiter !== undefined) table.assignedWaiter = assignedWaiter;
+  
+  res.json(table);
+});
+
+/**
+ * POST /api/tables/:id/assign
+ * Assigns table to waiter
+ */
+app.post('/api/tables/:id/assign', (req: Request, res: Response) => {
+  const table = tables.find(t => t.id === req.params.id);
+  if (!table) {
+    return res.status(404).json({ error: 'Table not found' });
+  }
+
+  const { waiterId } = req.body;
+  
+  table.assignedWaiter = waiterId;
+  table.status = 'occupied';
+  
+  res.json(table);
+});
+
+/**
+ * POST /api/tables/:id/assist
+ * Marks table as needing assistance
+ */
+app.post('/api/tables/:id/assist', (req: Request, res: Response) => {
+  const table = tables.find(t => t.id === req.params.id);
+  if (!table) {
+    return res.status(404).json({ error: 'Table not found' });
+  }
+
+  table.status = 'need-assistance';
+  res.json(table);
 });
 
 /**
@@ -69,22 +138,33 @@ app.get('/api/reservations', (req: Request, res: Response) => {
  * Creates a new reservation
  */
 app.post('/api/reservations', (req: Request, res: Response) => {
+  const { tableNumber, reservationDate, reservationTime } = req.body;
+
+  // Check if table is available
+  const table = tables.find(t => t.number === tableNumber);
+  if (!table || table.status !== 'available') {
+    return res.status(400).json({ error: 'Table is not available for reservation' });
+  }
+
   const reservation: Reservation = {
     id: `res_${Date.now()}`,
     customerName: req.body.customerName,
     customerEmail: req.body.customerEmail,
     customerPhone: req.body.customerPhone,
-    tableNumber: req.body.tableNumber,
-    reservationDate: req.body.reservationDate,
-    reservationTime: req.body.reservationTime,
+    tableNumber: tableNumber,
+    reservationDate: reservationDate,
+    reservationTime: reservationTime,
     numberOfGuests: req.body.numberOfGuests,
-    status: 'pending'
+    status: 'confirmed'
   };
 
   // Basic validation
   if (!reservation.customerName || !reservation.reservationDate || !reservation.reservationTime) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
+
+  // Update table status to reserved
+  table.status = 'reserved';
 
   reservations.push(reservation);
   res.status(201).json(reservation);
@@ -117,17 +197,32 @@ app.get('/api/orders', (req: Request, res: Response) => {
  * Creates a new order
  */
 app.post('/api/orders', (req: Request, res: Response) => {
+  const { tableNumber, items, assignedWaiter, customerName } = req.body;
+
+  // Check if table exists
+  const table = tables.find(t => t.number === tableNumber);
+  if (!table) {
+    return res.status(400).json({ error: 'Table not found' });
+  }
+
   const order: Order = {
     id: `order_${Date.now()}`,
-    tableNumber: req.body.tableNumber,
-    items: req.body.items,
+    tableNumber: tableNumber,
+    items: items,
     status: 'pending',
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    assignedWaiter: assignedWaiter,
+    customerName: customerName
   };
 
   if (!order.tableNumber || !order.items || order.items.length === 0) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
+
+  // Update table status
+  table.status = 'occupied';
+  table.assignedWaiter = assignedWaiter;
+  table.currentOrder = order.id;
 
   orders.push(order);
   res.status(201).json(order);
@@ -142,6 +237,32 @@ app.get('/api/orders/:id', (req: Request, res: Response) => {
   if (!order) {
     return res.status(404).json({ error: 'Order not found' });
   }
+  res.json(order);
+});
+
+/**
+ * PUT /api/orders/:id/status
+ * Updates order status
+ */
+app.put('/api/orders/:id/status', (req: Request, res: Response) => {
+  const order = orders.find(o => o.id === req.params.id);
+  if (!order) {
+    return res.status(404).json({ error: 'Order not found' });
+  }
+
+  const { status } = req.body;
+  order.status = status;
+
+  // If order is paid, mark table as available
+  if (status === 'paid') {
+    const table = tables.find(t => t.number === order.tableNumber);
+    if (table) {
+      table.status = 'available';
+      table.assignedWaiter = undefined;
+      table.currentOrder = undefined;
+    }
+  }
+
   res.json(order);
 });
 
@@ -182,16 +303,67 @@ app.post('/api/bills/generate', (req: Request, res: Response) => {
 
 /**
  * POST /api/bills/:id/pay
- * Processes payment for a bill
+ * Processes payment for a bill and updates table status
  */
 app.post('/api/bills/:id/pay', (req: Request, res: Response) => {
-  // In a real app, this would update the bill in a database
-  // For now, we just return a success response
+  const { paymentMethod } = req.body;
+  
+  // Update order status to paid
+  const billId = req.params.id;
+  const orderId = billId.replace('bill_', 'order_');
+  const order = orders.find(o => o.id === orderId);
+  
+  if (order) {
+    order.status = 'paid';
+    
+    // Mark table as available
+    const table = tables.find(t => t.number === order.tableNumber);
+    if (table) {
+      table.status = 'available';
+      table.assignedWaiter = undefined;
+      table.currentOrder = undefined;
+    }
+  }
+
   res.json({ 
     success: true, 
     message: 'Payment processed successfully',
-    billId: req.params.id
+    billId: req.params.id,
+    paymentMethod: paymentMethod
   });
+});
+
+// ==================== WAITER STATS ENDPOINTS ====================
+
+/**
+ * GET /api/waiters/:id/stats
+ * Returns waiter statistics
+ */
+app.get('/api/waiters/:id/stats', (req: Request, res: Response) => {
+  const waiterId = req.params.id;
+  
+  const waiterOrders = orders.filter(order => order.assignedWaiter === waiterId);
+  const activeTables = tables.filter(table => table.assignedWaiter === waiterId && table.status === 'occupied');
+  const pendingOrders = waiterOrders.filter(order => order.status === 'pending' || order.status === 'preparing');
+  
+  const today = new Date().toISOString().split('T')[0];
+  const todayOrders = waiterOrders.filter(order => order.createdAt.startsWith(today));
+  const todayRevenue = todayOrders.reduce((sum, order) => {
+    return sum + order.items.reduce((orderSum, item) => orderSum + (item.price * item.quantity), 0);
+  }, 0);
+
+  const stats = {
+    activeTables: activeTables.length,
+    pendingOrders: pendingOrders.length,
+    todayRevenue: Math.round(todayRevenue * 100) / 100,
+    avgServiceTime: 25, // Mock data
+    totalTablesServed: waiterOrders.filter(order => order.status === 'paid').length,
+    totalRevenue: Math.round(todayRevenue * 1.5 * 100) / 100, // Mock data
+    customerRating: 4.7, // Mock data
+    orderAccuracy: 98 // Mock data
+  };
+
+  res.json(stats);
 });
 
 // ==================== AUTHENTICATION ENDPOINTS ====================
@@ -200,8 +372,8 @@ app.post('/api/bills/:id/pay', (req: Request, res: Response) => {
  * Simple user credentials (in production, use a database)
  */
 const users = {
-  waiter: { username: 'waiter', password: 'waiter123', role: 'waiter' },
-  manager: { username: 'manager', password: 'manager123', role: 'manager' }
+  waiter: { username: 'waiter', password: 'waiter123', role: 'waiter', name: 'Ahmed Waiter' },
+  manager: { username: 'manager', password: 'manager123', role: 'manager', name: 'Manager' }
 };
 
 /**
@@ -229,6 +401,8 @@ app.post('/api/auth/login', (req: Request, res: Response) => {
     success: true,
     username: user.username,
     role: user.role,
+    name: user.name,
+    id: username,
     token: token
   });
 });
@@ -237,6 +411,6 @@ app.post('/api/auth/login', (req: Request, res: Response) => {
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
   console.log(`API endpoints available at http://localhost:${PORT}/api`);
-  console.log(`Login page: http://localhost:${PORT}/login.html`);
+  console.log(`Customer menu: http://localhost:${PORT}/index.html`);
+  console.log(`Staff login: http://localhost:${PORT}/login.html`);
 });
-
