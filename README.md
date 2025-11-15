@@ -201,13 +201,13 @@ All code is written in TypeScript with strict type checking enabled, ensuring:
 - Payment gateway integration
 - Order history and analytics
 
-## 📄 License
-
-ISC
-
 ## 👥 Team
 
-This project is part of a software engineering course project.
+This project is part of a software engineering course project and is developed by:
+- Sondos Ahmed Mansour - sondosaaa@aucegypt.edu   
+- Mohammed Hazem Ali - Mohamed811@aucegypt.edu
+- Roaa Hany Emam - roaahany@aucegypt.edu
+- Fatima Nageh - fatimanageh@aucegypt.edu
 
 ---
 
