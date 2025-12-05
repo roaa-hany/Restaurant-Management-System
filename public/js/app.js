@@ -22,7 +22,7 @@ const reservationMessage = document.getElementById('reservation-message');
  * Initialize the customer application
  */
 async function initCustomerApp() {
-    await Promise.all([loadMenu(), loadAvailableTables()]);
+    await loadMenu();
     setupCustomerEventListeners();
 }
 /**
@@ -39,45 +39,6 @@ async function loadMenu() {
         showCustomerMessage(menuContainer, 'Error loading menu. Please try again later.', 'error');
     }
 }
-
-/**
- * Load available tables for reservation
- */
-async function loadAvailableTables() {
-    try {
-        const response = await fetch(`${CUSTOMER_API_BASE}/tables/available`);
-        const availableTables = await response.json();
-        populateTableSelect(availableTables);
-    } catch (error) {
-        console.error('Error loading tables:', error);
-        const tableSelect = document.getElementById('tableNumber');
-        if (tableSelect) {
-            tableSelect.innerHTML = '<option value="">Error loading tables</option>';
-        }
-    }
-}
-
-/**
- * Populate table select dropdown
- */
-function populateTableSelect(tables) {
-    const tableSelect = document.getElementById('tableNumber');
-    if (!tableSelect) return;
-
-    if (tables.length === 0) {
-        tableSelect.innerHTML = '<option value="">No tables available</option>';
-        return;
-    }
-
-    tableSelect.innerHTML = '<option value="">Select a table</option>';
-    tables.forEach(table => {
-        const option = document.createElement('option');
-        option.value = table.number;
-        option.textContent = `Table ${table.number} (${table.capacity} people)`;
-        tableSelect.appendChild(option);
-    });
-}
-
 /**
  * Display menu items in the container
  */
@@ -296,7 +257,6 @@ async function handleReservationSubmit(e) {
         showCustomerMessage(reservationMessage, 'Error creating reservation. Please try again.', 'error');
     }
 }
-
 /**
  * Show a message to the user
  */

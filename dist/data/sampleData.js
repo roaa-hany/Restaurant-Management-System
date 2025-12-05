@@ -3,7 +3,7 @@
  * Sample data for the Restaurant Management System
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sampleTables = exports.sampleOrders = exports.sampleReservations = exports.sampleMenuItems = void 0;
+exports.sampleOrders = exports.sampleReservations = exports.sampleTables = exports.sampleMenuItems = void 0;
 exports.sampleMenuItems = [
     {
         id: '1',
@@ -86,8 +86,6 @@ exports.sampleMenuItems = [
         allergens: []
     }
 ];
-exports.sampleReservations = [];
-exports.sampleOrders = [];
 exports.sampleTables = [
     { id: 'table_1', number: 1, capacity: 2, status: 'available' },
     { id: 'table_2', number: 2, capacity: 4, status: 'available' },
@@ -100,3 +98,5 @@ exports.sampleTables = [
     { id: 'table_9', number: 9, capacity: 6, status: 'available' },
     { id: 'table_10', number: 10, capacity: 2, status: 'available' }
 ];
+exports.sampleReservations = [];
+exports.sampleOrders = [];
