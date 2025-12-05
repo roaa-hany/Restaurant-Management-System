@@ -1,4 +1,5 @@
 "use strict";
+
 /**
  * Waiter Dashboard Application Logic
  * Handles table management, order tracking, billing, and performance metrics
@@ -73,7 +74,7 @@ const markAvailableBtn = document.getElementById('mark-available-btn');
 const cancelOrderBtn = document.getElementById('cancel-order');
 
 /**
- * Check authentication and redirect if not logged in
+ * Initialize the waiter dashboard
  */
 async function initWaiterDashboard() {
     await verifyWaiterSession();
@@ -99,6 +100,7 @@ async function verifyWaiterSession() {
         window.location.href = 'login.html';
         return;
     }
+
     try {
         const sessionData = JSON.parse(session);
         if (sessionData.role !== 'waiter') {
@@ -1180,13 +1182,42 @@ async function assignTableToWaiter(tableId) {
         showMessage('Error assigning table', 'error');
     }
 }
+
 /**
- * Handle logout
+ * Create new order for table
  */
-function handleWaiterLogout() {
-    localStorage.removeItem('staffSession');
-    window.location.href = 'login.html';
+function createNewOrder(tableId) {
+    // Redirect to ordering system or open modal
+    window.location.href = `waiter.html?table=${tableId}`;
 }
+
+/**
+ * Mark table as needing assistance
+ */
+async function assistTable(tableId) {
+    try {
+        const response = await fetch(`${DASHBOARD_API_BASE}/tables/${tableId}/assist`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                waiterId: currentWaiter.id
+            })
+        });
+
+        if (response.ok) {
+            showMessage('Assistance provided to table', 'success');
+            await loadTables();
+        } else {
+            showMessage('Failed to update table status', 'error');
+        }
+    } catch (error) {
+        console.error('Error assisting table:', error);
+        showMessage('Error assisting table', 'error');
+    }
+}
+
 /**
  * Calculate performance metrics
  */
@@ -1455,6 +1486,8 @@ function getOrderStatusClass(status) {
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initWaiterDashboard);
+} else {
+    initWaiterDashboard();
 }
 
 // Keep all existing update functions (updateRecentActivity, updateStats, updateDashboard, etc.)
@@ -1574,4 +1607,18 @@ function setupEventListeners() {
             }
         }
     });
+}
+
+/**
+ * Show message to user
+ */
+function showMessage(message, type) {
+    if (!dashboardMessage) return;
+
+    dashboardMessage.textContent = message;
+    dashboardMessage.className = `message ${type}`;
+    
+    setTimeout(() => {
+        dashboardMessage.className = 'message';
+    }, 5000);
 }
