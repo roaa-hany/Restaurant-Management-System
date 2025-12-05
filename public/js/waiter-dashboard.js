@@ -89,6 +89,7 @@ async function initWaiterDashboard() {
     populateOrderTableSelect();
     populateBillingOrderSelect();
     calculatePerformanceMetrics();
+    setupKitchenUpdates();
 }
 
 /**
@@ -266,12 +267,13 @@ function displayOrders() {
                         <button class="btn btn-danger" onclick="generateBill('${order.id}')">Generate Bill</button>
                     </div>
                 </div>
-                <div class="order-info">
-                    <div><strong>Status:</strong> <span class="status-badge ${statusClass}">${order.status}</span></div>
-                    <div><strong>Created:</strong> ${new Date(order.createdAt).toLocaleString()}</div>
-                    <div><strong>Total:</strong> ${total.toFixed(2)} EGP</div>
-                    ${order.customerName ? `<div><strong>Customer:</strong> ${order.customerName}</div>` : ''}
-                </div>
+                    <div class="order-info">
+                      <div><strong>Status:</strong> <span class="status-badge ${statusClass}">${order.status}</span></div>
+                      <div><strong>Created:</strong> ${new Date(order.createdAt).toLocaleString()}</div>
+                      <div><strong>Total:</strong> ${total.toFixed(2)} EGP</div>
+                      ${order.estimatedPrepTime ? `<div><strong>Estimated prep time:</strong> ${order.estimatedPrepTime} min</div>` : ''}
+                      ${order.customerName ? `<div><strong>Customer:</strong> ${order.customerName}</div>` : ''}
+                    </div>
                 <div class="order-items">
                     <strong>Items:</strong>
                     ${itemsHTML}
@@ -1621,4 +1623,79 @@ function showMessage(message, type) {
     setTimeout(() => {
         dashboardMessage.className = 'message';
     }, 5000);
+}
+
+/**
+ * Listen for kitchen order updates
+ */
+function setupKitchenUpdates() {
+    // Simple polling every 10 seconds to get kitchen status changes
+    setInterval(() => {
+        loadOrders();
+    }, 10000);
+}
+
+/**
+ * Fallback polling for order updates
+ */
+function setupOrderPolling() {
+    // Poll for order updates every 30 seconds
+    setInterval(async () => {
+        await checkOrderStatusUpdates();
+    }, 30000);
+}
+
+/**
+ * Check for order status updates from kitchen
+ */
+async function checkOrderStatusUpdates() {
+    try {
+        const response = await fetch(`${DASHBOARD_API_BASE}/orders/updates`);
+        if (response.ok) {
+            const updates = await response.json();
+            updates.forEach(update => {
+                updateOrderStatusInUI(update.id, update.status, update.estimatedPrepTime);
+            });
+        }
+    } catch (error) {
+        console.error('Error checking order updates:', error);
+    }
+}
+
+/**
+ * Update order status in UI
+ */
+function updateOrderStatusInUI(orderId, status, estimatedTime = null) {
+    const orderElement = document.querySelector(`[data-order-id="${orderId}"]`);
+    if (!orderElement) return;
+
+    // Update status badge
+    const statusBadge = orderElement.querySelector('.status-badge');
+    if (statusBadge) {
+        statusBadge.className = `status-badge ${getOrderStatusClass(status)}`;
+        statusBadge.textContent = status;
+    }
+
+    // Update actions based on new status
+    updateOrderActions(orderElement, status);
+
+    // Show estimated time if provided
+    if (estimatedTime && status === 'preparing') {
+        showEstimatedTime(orderElement, estimatedTime);
+    }
+}
+
+/**
+ * Show order ready notification
+ */
+function showOrderReadyNotification(orderId, tableNumber) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(`Order #${orderId} Ready`, {
+            body: `Table ${tableNumber} - Order is ready for serving`,
+            icon: '/notification-icon.png'
+        });
+    } else {
+        // Fallback to browser alert
+        alert(`⚠️ Order #${orderId} is ready for Table ${tableNumber}!`);
+    }
 }

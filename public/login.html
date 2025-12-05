@@ -7,25 +7,38 @@
     <link rel="stylesheet" href="css/styles.css">
     <style>
         .login-container {
-            max-width: 400px;
+            max-width: 450px;
             margin: 5rem auto;
             padding: 2rem;
             background: white;
             border-radius: 10px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
+
         .login-container h2 {
             text-align: center;
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
             color: #667eea;
         }
+
+        .restaurant-icon {
+            text-align: center;
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #667eea;
+        }
+
         .role-selector {
             display: flex;
-            gap: 1rem;
+            gap: 0.5rem;
             margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            justify-content: center;
         }
+
         .role-btn {
             flex: 1;
+            min-width: 120px;
             padding: 0.75rem;
             border: 2px solid #e0e0e0;
             background: white;
@@ -33,54 +46,519 @@
             cursor: pointer;
             transition: all 0.3s;
             font-size: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
         }
+
         .role-btn.active {
             border-color: #667eea;
             background: #667eea;
             color: white;
         }
-        .role-btn:hover {
+
+        .role-btn:hover:not(.active) {
             border-color: #667eea;
+            background: #f8f9fa;
+        }
+
+        .role-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .demo-credentials {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e0e0e0;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .credential-group {
+            margin-bottom: 1rem;
+            background: #f8f9fa;
+            padding: 0.75rem;
+            border-radius: 5px;
+        }
+
+        .credential-group h4 {
+            margin: 0 0 0.5rem 0;
+            color: #333;
+        }
+
+        .demo-credentials code {
+            background: white;
+            padding: 0.2rem 0.5rem;
+            border-radius: 3px;
+            font-family: monospace;
+            border: 1px solid #dee2e6;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 0.75rem 2rem;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+            width: 100%;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .message {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+
+        .session-info {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            display: none;
+        }
+
+        .session-info.show {
+            display: block;
         }
     </style>
 </head>
 <body>
-    <header>
-        <h1>🍽️ Egyptian Restaurant - Staff Login</h1>
-    </header>
+<header>
+    <h1>🏛️ Egyptian Restaurant - Staff Login</h1>
+</header>
 
-    <main>
-        <div class="login-container">
+<main>
+    <div class="login-container">
+        <div id="session-info" class="session-info">
+            <h3>Existing Session Detected</h3>
+            <p>You are already logged in as <span id="session-user">User</span>.</p>
+            <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                <button id="continue-btn" class="btn btn-primary">Continue to Dashboard</button>
+                <button id="logout-btn" class="btn btn-secondary">Logout & Login as Different User</button>
+            </div>
+        </div>
+
+        <div id="login-form-container">
+            <!-- Your existing login form -->
+            <div class="restaurant-icon">🍽️</div>
             <h2>Staff Login</h2>
-            
+
             <div class="role-selector">
-                <button class="role-btn active" data-role="waiter">Waiter</button>
-                <button class="role-btn" data-role="manager">Manager</button>
+                <button class="role-btn active" data-role="waiter">
+                    <div class="role-icon">👨‍💼</div>
+                    <span>Waiter</span>
+                </button>
+                <button class="role-btn" data-role="manager">
+                    <div class="role-icon">👔</div>
+                    <span>Manager</span>
+                </button>
+                <button class="role-btn" data-role="kitchen">
+                    <div class="role-icon">👨‍🍳</div>
+                    <span>Kitchen</span>
+                </button>
             </div>
 
             <form id="login-form">
                 <div class="form-group">
                     <label for="username">Username</label>
-                    <input type="text" id="username" name="username" required>
+                    <input type="text" id="username" name="username" required
+                           placeholder="Enter your username">
                 </div>
+
                 <div class="form-group">
                     <label for="password">Password</label>
-                    <input type="password" id="password" name="password" required>
+                    <input type="password" id="password" name="password" required
+                           placeholder="Enter your password">
                 </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%;">Login</button>
+
+                <button type="submit" class="btn btn-primary">
+                    Login to Dashboard
+                </button>
             </form>
+        </div>
 
-            <div id="login-message" class="message"></div>
+        <div id="login-message" class="message"></div>
 
-            <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #e0e0e0; text-align: center; color: #666; font-size: 0.9rem;">
-                <p><strong>Demo Credentials:</strong></p>
-                <p>Waiter: username: <code>waiter</code>, password: <code>waiter123</code></p>
-                <p>Manager: username: <code>manager</code>, password: <code>manager123</code></p>
+        <div class="demo-credentials">
+            <h3 style="text-align: center; margin-bottom: 1rem;">Demo Credentials</h3>
+
+            <div class="credential-group">
+                <h4>👨‍💼 Waiter</h4>
+                <div>Username: <code>waiter</code></div>
+                <div>Password: <code>waiter123</code></div>
+            </div>
+
+            <div class="credential-group">
+                <h4>👔 Manager</h4>
+                <div>Username: <code>manager</code></div>
+                <div>Password: <code>manager123</code></div>
+            </div>
+
+            <div class="credential-group">
+                <h4>👨‍🍳 Kitchen Staff</h4>
+                <div>Username: <code>chef1</code></div>
+                <div>Password: <code>chef123</code></div>
             </div>
         </div>
-    </main>
+    </div>
+</main>
 
-    <script type="module" src="js/login.js"></script>
+<script>
+    console.log("Login page loaded");
+
+    // State
+    let selectedRole = 'waiter';
+
+    // DOM Elements
+    const roleButtons = document.querySelectorAll('.role-btn');
+    const loginForm = document.getElementById('login-form');
+    const loginMessage = document.getElementById('login-message');
+    const sessionInfo = document.getElementById('session-info');
+    const sessionUser = document.getElementById('session-user');
+    const continueBtn = document.getElementById('continue-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    const loginFormContainer = document.getElementById('login-form-container');
+
+    /**
+     * Initialize login page
+     */
+    function initLogin() {
+        console.log("Initializing login page");
+        setupEventListeners();
+        checkExistingSession();
+    }
+
+    /**
+     * Setup event listeners
+     */
+    function setupEventListeners() {
+        console.log("Setting up event listeners");
+
+        // Role selector buttons
+        roleButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                console.log("Role button clicked");
+                const role = btn.getAttribute('data-role');
+                if (role) {
+                    selectRole(role);
+                }
+            });
+        });
+
+        // Login form submission
+        if (loginForm) {
+            console.log("Login form found, attaching submit handler");
+            loginForm.addEventListener('submit', handleLogin);
+        } else {
+            console.error("Login form not found!");
+        }
+
+        // Continue button
+        if (continueBtn) {
+            continueBtn.addEventListener('click', handleContinue);
+        }
+
+        // Logout button
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', handleLogout);
+        }
+    }
+
+    /**
+     * Handle continue to existing session
+     */
+    function handleContinue() {
+        const staffSession = localStorage.getItem('staffSession');
+        const kitchenSession = localStorage.getItem('kitchenSession');
+
+        let sessionData = null;
+
+        if (staffSession) {
+            sessionData = JSON.parse(staffSession);
+        } else if (kitchenSession) {
+            sessionData = JSON.parse(kitchenSession);
+        }
+
+        if (sessionData) {
+            redirectToDashboard(sessionData.role);
+        }
+    }
+
+    /**
+     * Handle logout from existing session
+     */
+    function handleLogout() {
+        localStorage.removeItem('staffSession');
+        localStorage.removeItem('kitchenSession');
+
+        // Hide session info, show login form
+        sessionInfo.classList.remove('show');
+        loginFormContainer.style.display = 'block';
+
+        // Clear form
+        loginForm.reset();
+        selectRole('waiter');
+    }
+
+    /**
+     * Select role (waiter, manager, or kitchen)
+     */
+    function selectRole(role) {
+        console.log("Selecting role:", role);
+        selectedRole = role;
+        roleButtons.forEach(btn => {
+            if (btn.getAttribute('data-role') === role) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+    }
+
+    /**
+     * Handle login form submission
+     */
+    async function handleLogin(e) {
+        console.log("Form submission handler triggered");
+        e.preventDefault();
+
+        if (!loginForm) {
+            console.error("Login form is null!");
+            return;
+        }
+
+        const formData = new FormData(loginForm);
+        const username = formData.get('username');
+        const password = formData.get('password');
+
+        console.log("Login attempt:", { username, password, selectedRole });
+
+        if (!username || !password) {
+            showLoginMessage('Please enter both username and password', 'error');
+            return;
+        }
+
+        // Mock authentication
+        const isValid = mockAuthentication(username, password, selectedRole);
+
+        if (isValid) {
+            showLoginMessage('Login successful! Redirecting...', 'success');
+
+            // Store session
+            const sessionData = {
+                id: 'user_' + Date.now(),
+                username: username,
+                name: getDisplayName(username, selectedRole),
+                role: selectedRole,
+                token: 'demo_token_' + Date.now(),
+                timestamp: Date.now()
+            };
+
+            // Store in localStorage with role-specific key
+            if (selectedRole === 'kitchen') {
+                localStorage.setItem('kitchenSession', JSON.stringify(sessionData));
+            } else {
+                localStorage.setItem('staffSession', JSON.stringify(sessionData));
+            }
+
+            // Redirect
+            setTimeout(() => {
+                redirectToDashboard(selectedRole);
+            }, 1000);
+
+        } else {
+            showLoginMessage('Invalid credentials. Please try again.', 'error');
+        }
+    }
+
+    /**
+     * Mock authentication for demo
+     */
+    function mockAuthentication(username, password, role) {
+        const credentials = {
+            waiter: { username: 'waiter', password: 'waiter123' },
+            manager: { username: 'manager', password: 'manager123' },
+            kitchen: { username: 'chef1', password: 'chef123' }
+        };
+
+        const validCreds = credentials[role];
+        return username === validCreds.username && password === validCreds.password;
+    }
+
+    /**
+     * Get display name for user
+     */
+    function getDisplayName(username, role) {
+        const names = {
+            'waiter': 'John (Waiter)',
+            'manager': 'Sarah (Manager)',
+            'chef1': 'Chef Ahmed'
+        };
+
+        return names[username] || username;
+    }
+
+    /**
+     * Check if user is already logged in
+     * Shows option instead of auto-redirecting
+     */
+    function checkExistingSession() {
+        console.log("Checking existing session...");
+
+        const staffSession = localStorage.getItem('staffSession');
+        const kitchenSession = localStorage.getItem('kitchenSession');
+
+        let sessionData = null;
+
+        if (staffSession) {
+            try {
+                sessionData = JSON.parse(staffSession);
+                const sessionAge = Date.now() - sessionData.timestamp;
+                const maxAge = 8 * 60 * 60 * 1000; // 8 hours
+
+                if (sessionAge >= maxAge) {
+                    console.log("Staff session expired");
+                    localStorage.removeItem('staffSession');
+                    sessionData = null;
+                }
+            } catch (error) {
+                console.error("Error parsing staff session:", error);
+                localStorage.removeItem('staffSession');
+            }
+        } else if (kitchenSession) {
+            try {
+                sessionData = JSON.parse(kitchenSession);
+                const sessionAge = Date.now() - sessionData.timestamp;
+                const maxAge = 8 * 60 * 60 * 1000; // 8 hours for kitchen staff
+
+                if (sessionAge >= maxAge) {
+                    console.log("Kitchen session expired");
+                    localStorage.removeItem('kitchenSession');
+                    sessionData = null;
+                }
+            } catch (error) {
+                console.error("Error parsing kitchen session:", error);
+                localStorage.removeItem('kitchenSession');
+            }
+        }
+
+        if (sessionData) {
+            console.log("Existing session found for:", sessionData.name);
+            // Show session info, hide login form
+            sessionUser.textContent = sessionData.name;
+            sessionInfo.classList.add('show');
+            loginFormContainer.style.display = 'none';
+        } else {
+            console.log("No valid session found");
+            // Show login form
+            sessionInfo.classList.remove('show');
+            loginFormContainer.style.display = 'block';
+        }
+    }
+
+    /**
+     * Redirect user to appropriate dashboard based on role
+     */
+    function redirectToDashboard(role) {
+        console.log("Redirecting to dashboard for role:", role);
+
+        const dashboardFiles = {
+            'waiter': 'waiter-dashboard.html',
+            'manager': 'manager-dashboard.html',
+            'kitchen': 'Kitchen.html'
+        };
+
+        const targetFile = dashboardFiles[role];
+
+        if (targetFile) {
+            console.log("Redirecting to:", targetFile);
+            window.location.href = targetFile;
+        } else {
+            console.error("Unknown role for redirect:", role);
+            showLoginMessage('Unknown user role. Please contact administrator.', 'error');
+        }
+    }
+
+    /**
+     * Show login message
+     */
+    function showLoginMessage(message, type) {
+        console.log("Showing message:", message, type);
+        if (loginMessage) {
+            loginMessage.textContent = message;
+            loginMessage.className = `message ${type}`;
+
+            setTimeout(() => {
+                loginMessage.className = 'message';
+            }, 5000);
+        } else {
+            console.error("Login message element not found!");
+            alert(message);
+        }
+    }
+
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+        console.log("Document is loading, waiting for DOMContentLoaded");
+        document.addEventListener('DOMContentLoaded', initLogin);
+    } else {
+        console.log("Document already loaded, initializing immediately");
+        initLogin();
+    }
+</script>
 </body>
 </html>
-
