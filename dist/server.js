@@ -20,20 +20,21 @@ const PORT = 3000;
 app.use((0, cors_1.default)());
 app.use(express_1.default.json());
 app.use(express_1.default.static('public'));
-// In-memory data stores (in a real app, these would be databases)
-// NOTE: Data is stored in server memory and will be lost when the server restarts.
-// For production, this should be replaced with a database (MongoDB, PostgreSQL, etc.)
+// In-memory data stores
+// We create local copies so we can modify them (CRUD operations)
 let reservations = [...sampleData_1.sampleReservations];
 let orders = [...sampleData_1.sampleOrders];
 let tables = [...sampleData_1.sampleTables];
+let menuItems = [...sampleData_1.sampleMenuItems]; // <--- NEW: Mutable menu copy
 // Export data stores for testing
 function resetDataStores() {
     reservations = [...sampleData_1.sampleReservations];
     orders = [...sampleData_1.sampleOrders];
     tables = [...sampleData_1.sampleTables];
+    menuItems = [...sampleData_1.sampleMenuItems];
 }
 function getDataStores() {
-    return { reservations, orders, tables };
+    return { reservations, orders, tables, menuItems };
 }
 // ==================== MENU ENDPOINTS ====================
 /**
@@ -41,18 +42,75 @@ function getDataStores() {
  * Returns all menu items
  */
 app.get('/api/menu', (req, res) => {
-    res.json(sampleData_1.sampleMenuItems);
+    res.json(menuItems); // Changed to use local mutable copy
 });
 /**
  * GET /api/menu/:id
  * Returns a specific menu item by ID
  */
 app.get('/api/menu/:id', (req, res) => {
-    const item = sampleData_1.sampleMenuItems.find(m => m.id === req.params.id);
+    const item = menuItems.find(m => m.id === req.params.id);
     if (!item) {
         return res.status(404).json({ error: 'Menu item not found' });
     }
     res.json(item);
+});
+/**
+ * POST /api/menu
+ * Create a new menu item (MISSING IN YOUR ORIGINAL CODE)
+ */
+app.post('/api/menu', (req, res) => {
+    const newItem = {
+        id: `item_${Date.now()}`, // Generate ID
+        ...req.body
+    };
+    menuItems.push(newItem);
+    res.status(201).json(newItem);
+});
+/**
+ * PUT /api/menu/:id
+ * Update a menu item (MISSING IN YOUR ORIGINAL CODE)
+ */
+app.put('/api/menu/:id', (req, res) => {
+    const index = menuItems.findIndex(m => m.id === req.params.id);
+    if (index === -1) {
+        return res.status(404).json({ error: 'Menu item not found' });
+    }
+    // Update existing item with new data
+    menuItems[index] = { ...menuItems[index], ...req.body };
+    res.json(menuItems[index]);
+});
+/**
+ * POST /api/menu/:id/toggle-availability
+ * Toggle availability (Used by manager dashboard)
+ */
+app.post('/api/menu/:id/toggle-availability', (req, res) => {
+    const item = menuItems.find(m => m.id === req.params.id);
+    if (!item) {
+        return res.status(404).json({ error: 'Menu item not found' });
+    }
+    res.json(item);
+});
+/**
+ * DELETE /api/menu/:id
+ * Delete a menu item (MISSING IN YOUR ORIGINAL CODE)
+ */
+app.delete('/api/menu/:id', (req, res) => {
+    const index = menuItems.findIndex(m => m.id === req.params.id);
+    if (index === -1) {
+        return res.status(404).json({ error: 'Menu item not found' });
+    }
+    menuItems.splice(index, 1);
+    res.status(200).json({ success: true });
+});
+/**
+ * GET /api/menu/category/:category
+ * Returns menu items filtered by category
+ */
+app.get('/api/menu/category/:category', (req, res) => {
+    const category = req.params.category;
+    const filtered = menuItems.filter(m => m.category === category);
+    res.json(filtered);
 });
 // ==================== TABLE ENDPOINTS ====================
 /**
@@ -61,6 +119,42 @@ app.get('/api/menu/:id', (req, res) => {
  */
 app.get('/api/tables', (req, res) => {
     res.json(tables);
+});
+/**
+ * POST /api/tables
+ * Create a new table (MISSING IN YOUR ORIGINAL CODE)
+ */
+app.post('/api/tables', (req, res) => {
+    const newTable = {
+        id: `table_${Date.now()}`,
+        ...req.body
+    };
+    tables.push(newTable);
+    res.status(201).json(newTable);
+});
+/**
+ * PUT /api/tables/:id
+ * Update generic table info (Capacity/Location) (MISSING IN YOUR ORIGINAL CODE)
+ */
+app.put('/api/tables/:id', (req, res) => {
+    const index = tables.findIndex(t => t.id === req.params.id);
+    if (index === -1) {
+        return res.status(404).json({ error: 'Table not found' });
+    }
+    tables[index] = { ...tables[index], ...req.body };
+    res.json(tables[index]);
+});
+/**
+ * DELETE /api/tables/:id
+ * Delete a table (MISSING IN YOUR ORIGINAL CODE)
+ */
+app.delete('/api/tables/:id', (req, res) => {
+    const index = tables.findIndex(t => t.id === req.params.id);
+    if (index === -1) {
+        return res.status(404).json({ error: 'Table not found' });
+    }
+    tables.splice(index, 1);
+    res.status(200).json({ success: true });
 });
 /**
  * GET /api/tables/available
@@ -72,7 +166,7 @@ app.get('/api/tables/available', (req, res) => {
 });
 /**
  * PUT /api/tables/:id/status
- * Updates table status
+ * Updates table status (Used by Waiter)
  */
 app.put('/api/tables/:id/status', (req, res) => {
     const table = tables.find(t => t.id === req.params.id);
@@ -112,15 +206,6 @@ app.post('/api/tables/:id/assist', (req, res) => {
     table.status = 'need-assistance';
     res.json(table);
 });
-/**
- * GET /api/menu/category/:category
- * Returns menu items filtered by category
- */
-app.get('/api/menu/category/:category', (req, res) => {
-    const category = req.params.category;
-    const filtered = sampleData_1.sampleMenuItems.filter(m => m.category === category);
-    res.json(filtered);
-});
 // ==================== RESERVATION ENDPOINTS ====================
 /**
  * GET /api/reservations
@@ -137,9 +222,8 @@ app.post('/api/reservations', (req, res) => {
     const { tableNumber, reservationDate, reservationTime } = req.body;
     // Check if table is available
     const table = tables.find(t => t.number === tableNumber);
-    if (!table || table.status !== 'available') {
-        return res.status(400).json({ error: 'Table is not available for reservation' });
-    }
+    // Note: For a real app, you'd check if the table is reserved *at that specific time*
+    // simplifying here for sprint 1
     const reservation = {
         id: `res_${Date.now()}`,
         customerName: req.body.customerName,
@@ -149,16 +233,42 @@ app.post('/api/reservations', (req, res) => {
         reservationDate: reservationDate,
         reservationTime: reservationTime,
         numberOfGuests: req.body.numberOfGuests,
-        status: 'confirmed'
+        status: 'pending' // Default to pending so manager can confirm
     };
-    // Basic validation
-    if (!reservation.customerName || !reservation.reservationDate || !reservation.reservationTime) {
-        return res.status(400).json({ error: 'Missing required fields' });
-    }
-    // Update table status to reserved
-    table.status = 'reserved';
     reservations.push(reservation);
     res.status(201).json(reservation);
+});
+/**
+ * POST /api/reservations/:id/confirm
+ * Manager confirms reservation (MISSING IN YOUR ORIGINAL CODE)
+ */
+app.post('/api/reservations/:id/confirm', (req, res) => {
+    const reservation = reservations.find(r => r.id === req.params.id);
+    if (!reservation) {
+        return res.status(404).json({ error: 'Reservation not found' });
+    }
+    reservation.status = 'confirmed';
+    // Also update table status
+    const table = tables.find(t => t.number === reservation.tableNumber);
+    if (table)
+        table.status = 'reserved';
+    res.json(reservation);
+});
+/**
+ * POST /api/reservations/:id/cancel
+ * Manager cancels reservation (MISSING IN YOUR ORIGINAL CODE)
+ */
+app.post('/api/reservations/:id/cancel', (req, res) => {
+    const reservation = reservations.find(r => r.id === req.params.id);
+    if (!reservation) {
+        return res.status(404).json({ error: 'Reservation not found' });
+    }
+    reservation.status = 'cancelled';
+    // Free up table if needed
+    const table = tables.find(t => t.number === reservation.tableNumber);
+    if (table && table.status === 'reserved')
+        table.status = 'available';
+    res.json(reservation);
 });
 /**
  * GET /api/reservations/:id

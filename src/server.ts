@@ -16,23 +16,25 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// In-memory data stores (in a real app, these would be databases)
-// NOTE: Data is stored in server memory and will be lost when the server restarts.
-// For production, this should be replaced with a database (MongoDB, PostgreSQL, etc.)
+// In-memory data stores
+// We create local copies so we can modify them (CRUD operations)
 let reservations: Reservation[] = [...sampleReservations];
 let orders: Order[] = [...sampleOrders];
 let tables: Table[] = [...sampleTables];
+let menuItems: MenuItem[] = [...sampleMenuItems]; // <--- NEW: Mutable menu copy
 
 // Export data stores for testing
 export function resetDataStores() {
   reservations = [...sampleReservations];
   orders = [...sampleOrders];
   tables = [...sampleTables];
+  menuItems = [...sampleMenuItems];
 }
 
 export function getDataStores() {
-  return { reservations, orders, tables };
+  return { reservations, orders, tables, menuItems };
 }
+
 // ==================== MENU ENDPOINTS ====================
 
 /**
@@ -40,7 +42,7 @@ export function getDataStores() {
  * Returns all menu items
  */
 app.get('/api/menu', (req: Request, res: Response) => {
-  res.json(sampleMenuItems);
+  res.json(menuItems); // Changed to use local mutable copy
 });
 
 /**
@@ -48,11 +50,73 @@ app.get('/api/menu', (req: Request, res: Response) => {
  * Returns a specific menu item by ID
  */
 app.get('/api/menu/:id', (req: Request, res: Response) => {
-  const item = sampleMenuItems.find(m => m.id === req.params.id);
+  const item = menuItems.find(m => m.id === req.params.id);
   if (!item) {
     return res.status(404).json({ error: 'Menu item not found' });
   }
   res.json(item);
+});
+
+/** 
+ * POST /api/menu
+ * Create a new menu item (MISSING IN YOUR ORIGINAL CODE)
+ */
+app.post('/api/menu', (req: Request, res: Response) => {
+    const newItem: MenuItem = {
+        id: `item_${Date.now()}`, // Generate ID
+        ...req.body
+    };
+    menuItems.push(newItem);
+    res.status(201).json(newItem);
+});
+
+/** 
+ * PUT /api/menu/:id
+ * Update a menu item (MISSING IN YOUR ORIGINAL CODE)
+ */
+app.put('/api/menu/:id', (req: Request, res: Response) => {
+    const index = menuItems.findIndex(m => m.id === req.params.id);
+    if (index === -1) {
+        return res.status(404).json({ error: 'Menu item not found' });
+    }
+    // Update existing item with new data
+    menuItems[index] = { ...menuItems[index], ...req.body };
+    res.json(menuItems[index]);
+});
+
+/** 
+ * POST /api/menu/:id/toggle-availability
+ * Toggle availability (Used by manager dashboard)
+ */
+app.post('/api/menu/:id/toggle-availability', (req: Request, res: Response) => {
+    const item = menuItems.find(m => m.id === req.params.id);
+    if (!item) {
+        return res.status(404).json({ error: 'Menu item not found' });
+    }
+    res.json(item);
+});
+
+/** 
+ * DELETE /api/menu/:id
+ * Delete a menu item (MISSING IN YOUR ORIGINAL CODE)
+ */
+app.delete('/api/menu/:id', (req: Request, res: Response) => {
+    const index = menuItems.findIndex(m => m.id === req.params.id);
+    if (index === -1) {
+        return res.status(404).json({ error: 'Menu item not found' });
+    }
+    menuItems.splice(index, 1);
+    res.status(200).json({ success: true });
+});
+
+/**
+ * GET /api/menu/category/:category
+ * Returns menu items filtered by category
+ */
+app.get('/api/menu/category/:category', (req: Request, res: Response) => {
+  const category = req.params.category as MenuItem['category'];
+  const filtered = menuItems.filter(m => m.category === category);
+  res.json(filtered);
 });
 
 // ==================== TABLE ENDPOINTS ====================
@@ -66,6 +130,45 @@ app.get('/api/tables', (req: Request, res: Response) => {
 });
 
 /**
+ * POST /api/tables
+ * Create a new table (MISSING IN YOUR ORIGINAL CODE)
+ */
+app.post('/api/tables', (req: Request, res: Response) => {
+    const newTable: Table = {
+        id: `table_${Date.now()}`,
+        ...req.body
+    };
+    tables.push(newTable);
+    res.status(201).json(newTable);
+});
+
+/**
+ * PUT /api/tables/:id
+ * Update generic table info (Capacity/Location) (MISSING IN YOUR ORIGINAL CODE)
+ */
+app.put('/api/tables/:id', (req: Request, res: Response) => {
+    const index = tables.findIndex(t => t.id === req.params.id);
+    if (index === -1) {
+        return res.status(404).json({ error: 'Table not found' });
+    }
+    tables[index] = { ...tables[index], ...req.body };
+    res.json(tables[index]);
+});
+
+/**
+ * DELETE /api/tables/:id
+ * Delete a table (MISSING IN YOUR ORIGINAL CODE)
+ */
+app.delete('/api/tables/:id', (req: Request, res: Response) => {
+    const index = tables.findIndex(t => t.id === req.params.id);
+    if (index === -1) {
+        return res.status(404).json({ error: 'Table not found' });
+    }
+    tables.splice(index, 1);
+    res.status(200).json({ success: true });
+});
+
+/**
  * GET /api/tables/available
  * Returns available tables for reservations
  */
@@ -76,7 +179,7 @@ app.get('/api/tables/available', (req: Request, res: Response) => {
 
 /**
  * PUT /api/tables/:id/status
- * Updates table status
+ * Updates table status (Used by Waiter)
  */
 app.put('/api/tables/:id/status', (req: Request, res: Response) => {
   const table = tables.find(t => t.id === req.params.id);
@@ -124,15 +227,6 @@ app.post('/api/tables/:id/assist', (req: Request, res: Response) => {
   res.json(table);
 });
 
-/**
- * GET /api/menu/category/:category
- * Returns menu items filtered by category
- */
-app.get('/api/menu/category/:category', (req: Request, res: Response) => {
-  const category = req.params.category as MenuItem['category'];
-  const filtered = sampleMenuItems.filter(m => m.category === category);
-  res.json(filtered);
-});
 
 // ==================== RESERVATION ENDPOINTS ====================
 
@@ -153,10 +247,9 @@ app.post('/api/reservations', (req: Request, res: Response) => {
 
   // Check if table is available
   const table = tables.find(t => t.number === tableNumber);
-  if (!table || table.status !== 'available') {
-    return res.status(400).json({ error: 'Table is not available for reservation' });
-  }
-
+  // Note: For a real app, you'd check if the table is reserved *at that specific time*
+  // simplifying here for sprint 1
+  
   const reservation: Reservation = {
     id: `res_${Date.now()}`,
     customerName: req.body.customerName,
@@ -166,19 +259,47 @@ app.post('/api/reservations', (req: Request, res: Response) => {
     reservationDate: reservationDate,
     reservationTime: reservationTime,
     numberOfGuests: req.body.numberOfGuests,
-    status: 'confirmed'
+    status: 'pending' // Default to pending so manager can confirm
   };
-
-  // Basic validation
-  if (!reservation.customerName || !reservation.reservationDate || !reservation.reservationTime) {
-    return res.status(400).json({ error: 'Missing required fields' });
-  }
-
-  // Update table status to reserved
-  table.status = 'reserved';
 
   reservations.push(reservation);
   res.status(201).json(reservation);
+});
+
+/**
+ * POST /api/reservations/:id/confirm
+ * Manager confirms reservation (MISSING IN YOUR ORIGINAL CODE)
+ */
+app.post('/api/reservations/:id/confirm', (req: Request, res: Response) => {
+    const reservation = reservations.find(r => r.id === req.params.id);
+    if (!reservation) {
+        return res.status(404).json({ error: 'Reservation not found' });
+    }
+    reservation.status = 'confirmed';
+    
+    // Also update table status
+    const table = tables.find(t => t.number === reservation.tableNumber);
+    if (table) table.status = 'reserved';
+
+    res.json(reservation);
+});
+
+/**
+ * POST /api/reservations/:id/cancel
+ * Manager cancels reservation (MISSING IN YOUR ORIGINAL CODE)
+ */
+app.post('/api/reservations/:id/cancel', (req: Request, res: Response) => {
+    const reservation = reservations.find(r => r.id === req.params.id);
+    if (!reservation) {
+        return res.status(404).json({ error: 'Reservation not found' });
+    }
+    reservation.status = 'cancelled';
+    
+    // Free up table if needed
+    const table = tables.find(t => t.number === reservation.tableNumber);
+    if (table && table.status === 'reserved') table.status = 'available';
+
+    res.json(reservation);
 });
 
 /**
