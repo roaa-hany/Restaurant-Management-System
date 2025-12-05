@@ -73,6 +73,73 @@
                 <!-- Orders will be dynamically loaded here -->
             </div>
         </section>
+
+        <!-- Receipt -->
+        <!-- Add this at the end of waiter.html, right before the closing </main> tag -->
+        <!-- Receipt Template (Hidden) -->
+        <div id="receipt-template" style="display: none;">
+            <div class="receipt-container">
+                <div class="receipt-header">
+                    <div class="restaurant-name">Egyptian Restaurant</div>
+                    <div>123 Nile Street, Cairo</div>
+                    <div>Phone: (123) 456-7890</div>
+                    <div>VAT: 123456789</div>
+                </div>
+
+                <div class="receipt-info">
+                    <div><strong>Receipt #:</strong> <span id="receipt-number">N/A</span></div>
+                    <div><strong>Order #:</strong> <span id="order-number">N/A</span></div>
+                    <div><strong>Table #:</strong> <span id="table-number">N/A</span></div>
+                    <div><strong>Date:</strong> <span id="receipt-date">N/A</span></div>
+                    <div><strong>Time:</strong> <span id="receipt-time">N/A</span></div>
+                    <div><strong>Customer:</strong> <span id="customer-name">N/A</span></div>
+                </div>
+
+                <table class="receipt-table">
+                    <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th align="center">Qty</th>
+                        <th align="right">Price</th>
+                        <th align="right">Total</th>
+                    </tr>
+                    </thead>
+                    <tbody id="receipt-items">
+                    <!-- Items will be populated here -->
+                    </tbody>
+                </table>
+
+                <div class="totals-section">
+                    <div class="total-row">
+                        <span>Subtotal:</span>
+                        <span id="receipt-subtotal">0.00 EGP</span>
+                    </div>
+                    <div class="total-row">
+                        <span>Tax (10%):</span>
+                        <span id="receipt-tax">0.00 EGP</span>
+                    </div>
+                    <div class="total-row grand-total">
+                        <span>TOTAL:</span>
+                        <span id="receipt-total">0.00 EGP</span>
+                    </div>
+                </div>
+
+                <div class="payment-method">
+                    Payment Method: <span id="receipt-payment-method">N/A</span>
+                </div>
+
+                <div class="thank-you">
+                    Thank you for dining with us!
+                </div>
+
+                <div class="footer">
+                    <div>*** RECEIPT ***</div>
+                    <div>Keep this receipt for your records</div>
+                    <div>For inquiries: info@egyptianrestaurant.com</div>
+                    <div id="receipt-timestamp">N/A</div>
+                </div>
+            </div>
+        </div>
     </main>
 
     <script type="module" src="js/waiter.js"></script>
