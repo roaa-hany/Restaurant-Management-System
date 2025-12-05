@@ -407,6 +407,88 @@ app.post('/api/auth/login', (req: Request, res: Response) => {
   });
 });
 
+// ==================== KITCHEN ORDER ENDPOINTS ====================
+
+/**
+ * GET /api/kitchen/orders
+ * Returns orders in a shape friendly for the kitchen dashboard
+ */
+// GET all orders for kitchen dashboard
+app.get('/api/kitchen/orders', (req, res) => {
+  const kitchenOrders = orders.map(order => ({
+    ...order,
+    items: order.items.map(item => {
+      const menuItem = sampleMenuItems.find(
+          m => m.id === item.menuItemId
+      );
+
+      return {
+        ...item,
+        name: menuItem ? menuItem.name : 'Unknown Item'
+      };
+    })
+  }));
+
+  res.json(kitchenOrders);
+});
+
+/**
+ * POST /api/kitchen/orders/:id/accept
+ * Chef accepts an order and sets estimated prep time
+ */
+app.post('/api/kitchen/orders/:id/accept', (req: Request, res: Response) => {
+  const order = orders.find(o => o.id === req.params.id);
+  if (!order) {
+    return res.status(404).json({ error: 'Order not found' });
+  }
+
+  const { chefId, chefName, estimatedPrepTime } = req.body;
+  if (!estimatedPrepTime || estimatedPrepTime <= 0) {
+    return res.status(400).json({ error: 'Invalid estimated preparation time' });
+  }
+
+  order.status = 'preparing';
+  (order as any).assignedChef = chefId;
+  (order as any).chefName = chefName;
+  (order as any).estimatedPrepTime = estimatedPrepTime;
+  (order as any).startTime = new Date().toISOString();
+  (order as any).updatedAt = new Date().toISOString();
+
+  return res.json(order);
+});
+
+/**
+ * POST /api/kitchen/orders/:id/complete
+ * Chef finishes cooking – order becomes READY for the waiter
+ */
+app.post('/api/kitchen/orders/:id/complete', (req: Request, res: Response) => {
+  const order = orders.find(o => o.id === req.params.id);
+  if (!order) {
+    return res.status(404).json({ error: 'Order not found' });
+  }
+
+  order.status = 'ready';
+  (order as any).updatedAt = new Date().toISOString();
+
+  return res.json(order);
+});
+
+/**
+ * POST /api/kitchen/orders/:id/served
+ * Marks order as served to the customer (from kitchen point of view)
+ */
+app.post('/api/kitchen/orders/:id/served', (req: Request, res: Response) => {
+  const order = orders.find(o => o.id === req.params.id);
+  if (!order) {
+    return res.status(404).json({ error: 'Order not found' });
+  }
+
+  order.status = 'served';
+  (order as any).updatedAt = new Date().toISOString();
+
+  return res.json(order);
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
