@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kitchen Dashboard - Egyptian Restaurant</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .kitchen-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 2px solid #e0e0e0;
+    }
+
+    .kitchen-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 2rem;
+      font-weight: bold;
+      color: #667eea;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+      color: #666;
+      font-size: 0.9rem;
+    }
+
+    .orders-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1rem;
+    }
+
+    .order-card {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .order-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+    }
+
+    .order-header {
+      background: #667eea;
+      color: white;
+      padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .order-body {
+      padding: 1.5rem;
+    }
+
+    .order-items {
+      margin: 1rem 0;
+    }
+
+    .order-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .order-item:last-child {
+      border-bottom: none;
+    }
+
+    .item-name {
+      flex: 1;
+    }
+
+    .item-quantity {
+      background: #667eea;
+      color: white;
+      padding: 0.25rem 0.5rem;
+      border-radius: 3px;
+      font-weight: bold;
+      margin: 0 0.5rem;
+    }
+
+    .item-note {
+      color: #666;
+      font-size: 0.9rem;
+      margin-top: 0.25rem;
+      font-style: italic;
+    }
+
+    .order-timer {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid #eee;
+    }
+
+    .timer-display {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #667eea;
+    }
+
+    .order-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .btn-kitchen {
+      flex: 1;
+      padding: 0.75rem;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.3s;
+    }
+
+    .btn-accept {
+      background: #28a745;
+      color: white;
+    }
+
+    .btn-accept:hover {
+      background: #218838;
+    }
+
+    .btn-complete {
+      background: #17a2b8;
+      color: white;
+    }
+
+    .btn-complete:hover {
+      background: #138496;
+    }
+
+    .btn-ready {
+      background: #dc3545;
+      color: white;
+    }
+
+    .btn-ready:hover {
+      background: #c82333;
+    }
+
+    .status-badge {
+      padding: 0.25rem 0.5rem;
+      border-radius: 3px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+
+    .status-pending {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .status-preparing {
+      background: #cce5ff;
+      color: #004085;
+    }
+
+    .status-ready {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status-completed {
+      background: #d1ecf1;
+      color: #0c5460;
+    }
+
+    .timer-warning {
+      color: #ffc107;
+      animation: pulse 1s infinite;
+    }
+
+    .timer-danger {
+      color: #dc3545;
+      animation: blink 1s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+
+    @keyframes blink {
+      0% { opacity: 1; }
+      50% { opacity: 0; }
+      100% { opacity: 1; }
+    }
+
+    .logout-btn {
+      padding: 0.5rem 1.5rem;
+      background: #dc3545;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+
+    .logout-btn:hover {
+      background: #c82333;
+    }
+
+    .kitchen-message {
+      margin: 1rem 0;
+      padding: 1rem;
+      border-radius: 5px;
+    }
+
+    .kitchen-message.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .kitchen-message.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .order-filters {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      padding: 0.5rem 1rem;
+      border: 2px solid #667eea;
+      background: white;
+      color: #667eea;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .filter-btn.active {
+      background: #667eea;
+      color: white;
+    }
+
+    .filter-btn:hover:not(.active) {
+      background: #f8f9fa;
+    }
+
+    .estimated-time-input {
+      width: 100%;
+      padding: 0.5rem;
+      margin-top: 0.5rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+
+    .chef-name {
+      font-weight: bold;
+      color: #667eea;
+    }
+
+    .order-priority {
+      display: inline-block;
+      padding: 0.2rem 0.5rem;
+      border-radius: 3px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      margin-left: 0.5rem;
+    }
+
+    .priority-high {
+      background: #dc3545;
+      color: white;
+    }
+
+    .priority-medium {
+      background: #ffc107;
+      color: #212529;
+    }
+
+    .priority-low {
+      background: #28a745;
+      color: white;
+    }
+
+    .special-instructions {
+      background: #fff3cd;
+      padding: 0.5rem;
+      border-radius: 4px;
+      margin-top: 0.5rem;
+      border-left: 3px solid #ffc107;
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>👨‍🍳 Kitchen Dashboard</h1>
+</header>
+
+<main>
+  <div class="kitchen-header">
+    <h2>Welcome, <span id="chef-name">Chef</span>!</h2>
+    <button class="logout-btn" id="logout-btn">Logout</button>
+  </div>
+
+  <div class="kitchen-stats">
+    <div class="stat-card">
+      <div class="stat-number" id="pending-orders">0</div>
+      <div class="stat-label">Pending Orders</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" id="preparing-orders">0</div>
+      <div class="stat-label">In Preparation</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" id="ready-orders">0</div>
+      <div class="stat-label">Ready to Serve</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" id="today-completed">0</div>
+      <div class="stat-label">Completed Today</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" id="avg-prep-time">0m</div>
+      <div class="stat-label">Avg. Prep Time</div>
+    </div>
+  </div>
+
+  <div class="order-filters">
+    <button class="filter-btn active" data-filter="all">All Orders</button>
+    <button class="filter-btn" data-filter="pending">Pending</button>
+    <button class="filter-btn" data-filter="preparing">Preparing</button>
+    <button class="filter-btn" data-filter="ready">Ready</button>
+    <button class="filter-btn" data-filter="my">My Orders</button>
+  </div>
+
+  <div id="kitchen-message" class="kitchen-message"></div>
+
+  <div class="orders-grid" id="orders-container">
+    <!-- Orders will be populated here -->
+  </div>
+
+  <!-- Order Details Modal -->
+  <div id="order-details-modal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+      <span class="close" id="close-order-details">&times;</span>
+      <h2>Order Details</h2>
+      <div id="order-details-content">
+        <!-- Order details will be populated here -->
+      </div>
+      <div class="order-actions" id="modal-actions">
+        <!-- Modal actions will be populated here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Set Preparation Time Modal -->
+  <div id="prep-time-modal" class="modal">
+    <div class="modal-content" style="max-width: 400px;">
+      <span class="close" id="close-prep-time">&times;</span>
+      <h2>Set Preparation Time</h2>
+      <div id="prep-time-content">
+        <p>Please estimate preparation time for Order #<span id="prep-order-id"></span></p>
+        <div class="form-group">
+          <label for="prep-minutes">Minutes:</label>
+          <input type="number" id="prep-minutes" min="5" max="120" value="15" class="estimated-time-input">
+        </div>
+        <button id="confirm-prep-time" class="btn btn-primary">Start Preparation</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="js/Kitchen.js"></script>
+
+</body>
+</html>
