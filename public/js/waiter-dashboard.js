@@ -2,7 +2,7 @@
 
 /**
  * Waiter Dashboard Application Logic
- * Handles table management, order tracking, and performance metrics
+ * Handles table management, order tracking, billing, and performance metrics
  */
 
 const DASHBOARD_API_BASE = 'http://localhost:3000/api';
@@ -15,6 +15,7 @@ let waiterStats = {};
 let currentWaiter = null;
 let currentSelectedTable = null;
 let selectedOrderItems = [];
+let currentBill = null;
 
 // DOM Elements
 const logoutBtn = document.getElementById('logout-btn');
@@ -25,6 +26,18 @@ const tablesContainer = document.getElementById('tables-container');
 const ordersContainer = document.getElementById('orders-container');
 const recentActivity = document.getElementById('recent-activity');
 const dashboardMessage = document.getElementById('dashboard-message');
+
+// Billing Elements
+const orderSelect = document.getElementById('order-select');
+const loadOrderBtn = document.getElementById('load-order-btn');
+const billPreview = document.getElementById('bill-preview');
+const billItems = document.getElementById('bill-items');
+const billSubtotal = document.getElementById('bill-subtotal');
+const billTax = document.getElementById('bill-tax');
+const billTotal = document.getElementById('bill-total');
+const paymentMethod = document.getElementById('payment-method');
+const processPaymentBtn = document.getElementById('process-payment-btn');
+const billingMessage = document.getElementById('billing-message');
 
 // Modal Elements
 const orderModal = document.getElementById('order-modal');
@@ -37,19 +50,24 @@ const orderTotalElement = document.getElementById('order-total');
 const modalTableNumber = document.getElementById('modal-table-number');
 const tableDetails = document.getElementById('table-details');
 
-// Stats elements (keep existing ones)
+// Stats elements
 const activeTablesCount = document.getElementById('active-tables-count');
 const pendingOrdersCount = document.getElementById('pending-orders-count');
 const todayRevenue = document.getElementById('today-revenue');
 const avgServiceTime = document.getElementById('avg-service-time');
 const totalTablesServed = document.getElementById('total-tables-served');
+const totalOrdersCreated = document.getElementById('total-orders-created');
 const totalRevenue = document.getElementById('total-revenue');
 const customerRating = document.getElementById('customer-rating');
 const orderAccuracy = document.getElementById('order-accuracy');
+const averageOrderValue = document.getElementById('average-order-value');
+const peakHour = document.getElementById('peak-hour');
+const mostPopularItem = document.getElementById('most-popular-item');
 
 // Buttons
 const newOrderBtn = document.getElementById('new-order-btn');
 const viewTablesBtn = document.getElementById('view-tables-btn');
+const goToBillingBtn = document.getElementById('go-to-billing-btn');
 const createOrderBtn = document.getElementById('create-order-btn');
 const requestAssistanceBtn = document.getElementById('request-assistance-btn');
 const markAvailableBtn = document.getElementById('mark-available-btn');
@@ -69,6 +87,8 @@ async function initWaiterDashboard() {
     setupEventListeners();
     updateDashboard();
     populateOrderTableSelect();
+    populateBillingOrderSelect();
+    calculatePerformanceMetrics();
 }
 
 /**
@@ -87,10 +107,10 @@ async function verifyWaiterSession() {
             window.location.href = 'login.html';
             return;
         }
-        
+
         currentWaiter = sessionData;
         waiterName.textContent = sessionData.name || 'Waiter';
-        
+
     } catch (error) {
         console.error('Error verifying session:', error);
         window.location.href = 'login.html';
@@ -124,6 +144,7 @@ async function loadOrders() {
             waiterOrders = await response.json();
             displayOrders();
             updateRecentActivity();
+            populateBillingOrderSelect();
         }
     } catch (error) {
         console.error('Error loading orders:', error);
@@ -174,24 +195,24 @@ function displayTables() {
     tablesContainer.innerHTML = waiterTables.map(table => {
         const statusClass = getTableStatusClass(table.status);
         const statusText = getTableStatusText(table.status);
-        const tableOrders = waiterOrders.filter(order => 
-            order.tableNumber === table.number && 
+        const tableOrders = waiterOrders.filter(order =>
+            order.tableNumber === table.number &&
             (order.status === 'pending' || order.status === 'preparing')
         );
-        
+
         return `
             <div class="table-card ${statusClass}" data-table-id="${table.id}" data-table-number="${table.number}">
                 <div class="table-number">Table ${table.number}</div>
                 <div class="table-status">${statusText}</div>
                 <div class="table-capacity">Capacity: ${table.capacity}</div>
-                ${tableOrders.length > 0 ? 
-                    `<div class="table-orders">${tableOrders.length} active order(s)</div>` : 
-                    ''
-                }
-                ${table.assignedWaiter === currentWaiter.id ? 
-                    '<div class="table-assigned">✓ Assigned to you</div>' : 
-                    '<div class="table-assigned">Available</div>'
-                }
+                ${tableOrders.length > 0 ?
+            `<div class="table-orders">${tableOrders.length} active order(s)</div>` :
+            ''
+        }
+                ${table.assignedWaiter === currentWaiter.id ?
+            '<div class="table-assigned">✓ Assigned to you</div>' :
+            '<div class="table-assigned">Available</div>'
+        }
             </div>
         `;
     }).join('');
@@ -208,13 +229,14 @@ function displayTables() {
 function displayOrders() {
     if (!ordersContainer) return;
 
-    const filteredOrders = waiterOrders.filter(order => 
-        order.assignedWaiter === currentWaiter.id || 
-        !order.assignedWaiter
+    // Filter orders to show only those that are not paid
+    const filteredOrders = waiterOrders.filter(order =>
+        (order.assignedWaiter === currentWaiter.id || !order.assignedWaiter) &&
+        order.status !== 'paid'
     );
 
     if (filteredOrders.length === 0) {
-        ordersContainer.innerHTML = '<p>No orders assigned to you.</p>';
+        ordersContainer.innerHTML = '<p>No active orders assigned to you.</p>';
         return;
     }
 
@@ -241,11 +263,11 @@ function displayOrders() {
                         <button class="btn btn-primary" onclick="updateOrderStatus('${order.id}', 'preparing')">Preparing</button>
                         <button class="btn btn-success" onclick="updateOrderStatus('${order.id}', 'ready')">Ready</button>
                         <button class="btn btn-warning" onclick="updateOrderStatus('${order.id}', 'served')">Served</button>
-                        <button class="btn btn-danger" onclick="generateBill('${order.id}')">Bill</button>
+                        <button class="btn btn-danger" onclick="generateBill('${order.id}')">Generate Bill</button>
                     </div>
                 </div>
                 <div class="order-info">
-                    <div><strong>Status:</strong> <span class="${statusClass}">${order.status}</span></div>
+                    <div><strong>Status:</strong> <span class="status-badge ${statusClass}">${order.status}</span></div>
                     <div><strong>Created:</strong> ${new Date(order.createdAt).toLocaleString()}</div>
                     <div><strong>Total:</strong> ${total.toFixed(2)} EGP</div>
                     ${order.customerName ? `<div><strong>Customer:</strong> ${order.customerName}</div>` : ''}
@@ -257,6 +279,418 @@ function displayOrders() {
             </div>
         `;
     }).join('');
+}
+
+/**
+ * Populate order select for billing
+ */
+function populateBillingOrderSelect() {
+    const orderSelect = document.getElementById('order-select');
+
+    if (!orderSelect) return;
+
+    orderSelect.innerHTML = '<option value="">-- Select an order --</option>';
+
+    // Only show orders that are served (ready for billing) and not paid
+    const billableOrders = waiterOrders.filter(order =>
+        order.status === 'served' &&
+        order.status !== 'paid'
+    );
+
+    if (billableOrders.length === 0) {
+        orderSelect.innerHTML = '<option value="">No billable orders available</option>';
+        return;
+    }
+
+    billableOrders.forEach(order => {
+        const option = document.createElement('option');
+        option.value = order.id;
+        option.textContent = `Order ${order.id} - Table ${order.tableNumber} - ${order.status}`;
+        orderSelect.appendChild(option);
+    });
+}
+
+/**
+ * Load order for billing
+ */
+async function loadOrderForBilling() {
+    const orderId = orderSelect.value;
+    if (!orderId) {
+        showBillingMessage('Please select an order', 'error');
+        return;
+    }
+
+    try {
+        // Find the order
+        const order = waiterOrders.find(o => o.id === orderId);
+        if (!order) {
+            showBillingMessage('Order not found', 'error');
+            return;
+        }
+
+        // Create bill from order
+        const subtotal = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const tax = subtotal * 0.1;
+        const total = subtotal + tax;
+
+        currentBill = {
+            id: `BILL_${orderId}`,
+            orderId: orderId,
+            tableNumber: order.tableNumber,
+            items: order.items,
+            subtotal: subtotal,
+            tax: tax,
+            total: total,
+            customerName: order.customerName || 'Walk-in Customer',
+            createdAt: new Date().toISOString()
+        };
+
+        displayBill(currentBill);
+        billPreview.style.display = 'block';
+        showBillingMessage('Bill generated successfully', 'success');
+
+    } catch (error) {
+        console.error('Error generating bill:', error);
+        showBillingMessage('Error generating bill. Please try again.', 'error');
+    }
+}
+
+// Update billing dropdown
+function updateBillingDropdown() {
+    const orderSelect = document.getElementById('order-select');
+    if (!orderSelect) return;
+
+    // Remove paid orders from billing dropdown
+    const options = Array.from(orderSelect.options);
+    options.forEach((option, index) => {
+        if (index > 0 && option.textContent.includes('paid')) {
+            orderSelect.removeChild(option);
+        }
+    });
+
+    // If no billable orders left
+    if (orderSelect.options.length <= 1) {
+        orderSelect.innerHTML = '<option value="">No billable orders available</option>';
+    }
+}
+
+/**
+ * Display bill preview
+ */
+function displayBill(bill) {
+    if (!billItems || !billSubtotal || !billTax || !billTotal) return;
+
+    // Display bill items
+    billItems.innerHTML = bill.items.map(item => {
+        const menuItem = waiterMenuItems.find(m => m.id === item.menuItemId);
+        const itemName = menuItem ? menuItem.name : 'Unknown Item';
+        return `
+            <div class="bill-item">
+                <span>${itemName} x${item.quantity}</span>
+                <span>${(item.price * item.quantity).toFixed(2)} EGP</span>
+            </div>
+        `;
+    }).join('');
+
+    // Display totals
+    billSubtotal.textContent = `${bill.subtotal.toFixed(2)} EGP`;
+    billTax.textContent = `${bill.tax.toFixed(2)} EGP`;
+    billTotal.textContent = `${bill.total.toFixed(2)} EGP`;
+}
+
+/**
+ * Process payment and print receipt
+ */
+async function processPayment() {
+    if (!currentBill) {
+        showBillingMessage('Please generate a bill first', 'error');
+        return;
+    }
+
+    const paymentMethodValue = paymentMethod.value;
+    if (!paymentMethodValue) {
+        showBillingMessage('Please select a payment method', 'error');
+        return;
+    }
+
+    try {
+        // Update bill with payment method
+        currentBill.paymentMethod = paymentMethodValue;
+        currentBill.paymentStatus = 'paid';
+
+        // Update order status to paid
+        await updateOrderStatus(currentBill.orderId, 'paid');
+
+        // Show success message
+        showBillingMessage(`Payment processed successfully with ${paymentMethodValue}! Printing receipt...`, 'success');
+
+        // Generate and print receipt
+        setTimeout(() => {
+            generateAndPrintReceipt(currentBill);
+        }, 1500);
+
+        // Reset billing form
+        setTimeout(() => {
+            orderSelect.value = '';
+            billPreview.style.display = 'none';
+            currentBill = null;
+
+            // Refresh data
+            loadOrders().then(() => {
+                populateBillingOrderSelect();
+                calculatePerformanceMetrics();
+            });
+        }, 2000);
+
+    } catch (error) {
+        console.error('Error processing payment:', error);
+        showBillingMessage('Error processing payment', 'error');
+    }
+}
+
+/**
+ * Generate and print receipt
+ */
+function generateAndPrintReceipt(bill) {
+    if (!bill || !bill.items || bill.items.length === 0) {
+        console.error('Invalid bill data for receipt');
+        return;
+    }
+
+    // Get current date and time
+    const now = new Date();
+    const dateStr = now.toLocaleDateString();
+    const timeStr = now.toLocaleTimeString();
+
+    // Calculate totals
+    const subtotal = bill.subtotal || bill.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const tax = bill.tax || subtotal * 0.1;
+    const total = bill.total || subtotal + tax;
+
+    // Format items for receipt
+    const itemsHTML = bill.items.map(item => {
+        const menuItem = waiterMenuItems.find(m => m.id === item.menuItemId);
+        const itemName = menuItem ? menuItem.name : 'Unknown Item';
+        const itemTotal = (item.price * item.quantity).toFixed(2);
+        return `
+            <tr>
+                <td>${itemName}</td>
+                <td align="center">${item.quantity}</td>
+                <td align="right">${item.price.toFixed(2)}</td>
+                <td align="right">${itemTotal}</td>
+            </tr>
+        `;
+    }).join('');
+
+    // Create receipt HTML
+    const receiptHTML = `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Receipt - Order ${bill.orderId}</title>
+            <style>
+                body {
+                    font-family: 'Courier New', monospace;
+                    max-width: 300px;
+                    margin: 0 auto;
+                    padding: 20px;
+                    line-height: 1.4;
+                }
+                
+                .receipt-header {
+                    text-align: center;
+                    border-bottom: 2px dashed #000;
+                    padding-bottom: 10px;
+                    margin-bottom: 15px;
+                }
+                
+                .restaurant-name {
+                    font-size: 22px;
+                    font-weight: bold;
+                    margin-bottom: 5px;
+                    text-transform: uppercase;
+                }
+                
+                .receipt-info {
+                    margin: 10px 0;
+                    font-size: 14px;
+                }
+                
+                .receipt-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin: 15px 0;
+                    font-size: 14px;
+                }
+                
+                .receipt-table th {
+                    border-bottom: 1px solid #000;
+                    padding: 5px;
+                    text-align: left;
+                    font-weight: bold;
+                }
+                
+                .receipt-table td {
+                    padding: 5px;
+                    border-bottom: 1px dashed #ddd;
+                }
+                
+                .totals-section {
+                    border-top: 2px dashed #000;
+                    margin-top: 15px;
+                    padding-top: 10px;
+                    font-size: 15px;
+                }
+                
+                .total-row {
+                    display: flex;
+                    justify-content: space-between;
+                    margin: 5px 0;
+                }
+                
+                .grand-total {
+                    font-size: 18px;
+                    font-weight: bold;
+                    margin-top: 10px;
+                    border-top: 2px solid #000;
+                    padding-top: 10px;
+                }
+                
+                .footer {
+                    text-align: center;
+                    margin-top: 20px;
+                    font-size: 12px;
+                    color: #666;
+                    border-top: 1px dashed #666;
+                    padding-top: 10px;
+                }
+                
+                .thank-you {
+                    text-align: center;
+                    margin: 20px 0;
+                    font-size: 16px;
+                    font-weight: bold;
+                }
+                
+                .payment-method {
+                    margin: 10px 0;
+                    font-weight: bold;
+                }
+                
+                @media print {
+                    body * {
+                        visibility: hidden;
+                    }
+                    .receipt-container, .receipt-container * {
+                        visibility: visible;
+                    }
+                    .receipt-container {
+                        position: absolute;
+                        left: 0;
+                        top: 0;
+                        width: 100%;
+                    }
+                    @page {
+                        size: auto;
+                        margin: 0;
+                    }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="receipt-container">
+                <div class="receipt-header">
+                    <div class="restaurant-name">Egyptian Restaurant</div>
+                    <div>123 Nile Street, Cairo</div>
+                    <div>Phone: (123) 456-7890</div>
+                    <div>VAT: 123456789</div>
+                </div>
+                
+                <div class="receipt-info">
+                    <div><strong>Receipt #:</strong> ${bill.id || 'N/A'}</div>
+                    <div><strong>Order #:</strong> ${bill.orderId || 'N/A'}</div>
+                    <div><strong>Table #:</strong> ${bill.tableNumber || 'N/A'}</div>
+                    <div><strong>Date:</strong> ${dateStr}</div>
+                    <div><strong>Time:</strong> ${timeStr}</div>
+                    <div><strong>Customer:</strong> ${bill.customerName || 'Walk-in Customer'}</div>
+                </div>
+                
+                <table class="receipt-table">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th align="center">Qty</th>
+                            <th align="right">Price</th>
+                            <th align="right">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${itemsHTML}
+                    </tbody>
+                </table>
+                
+                <div class="totals-section">
+                    <div class="total-row">
+                        <span>Subtotal:</span>
+                        <span>${subtotal.toFixed(2)} EGP</span>
+                    </div>
+                    <div class="total-row">
+                        <span>Tax (10%):</span>
+                        <span>${tax.toFixed(2)} EGP</span>
+                    </div>
+                    <div class="total-row grand-total">
+                        <span>TOTAL:</span>
+                        <span>${total.toFixed(2)} EGP</span>
+                    </div>
+                </div>
+                
+                <div class="payment-method">
+                    Payment Method: ${bill.paymentMethod ? bill.paymentMethod.toUpperCase() : 'N/A'}
+                </div>
+                
+                <div class="thank-you">
+                    Thank you for dining with us!
+                </div>
+                
+                <div class="footer">
+                    <div>*** RECEIPT ***</div>
+                    <div>Keep this receipt for your records</div>
+                    <div>For inquiries: info@egyptianrestaurant.com</div>
+                    <div>${now.toLocaleString()}</div>
+                </div>
+            </div>
+            
+            <script>
+                // Auto-print receipt
+                window.onload = function() {
+                    window.print();
+                    
+                    setTimeout(function() {
+                        window.onafterprint = function() {
+                            window.close();
+                        };
+                    }, 1000);
+                };
+            </script>
+        </body>
+        </html>
+    `;
+
+    // Open receipt in new window and print
+    try {
+        const receiptWindow = window.open('', '_blank', 'width=400,height=600');
+        if (receiptWindow) {
+            receiptWindow.document.write(receiptHTML);
+            receiptWindow.document.close();
+        } else {
+            alert('Receipt generated but could not open print window. Please allow pop-ups.');
+        }
+    } catch (error) {
+        console.error('Error opening receipt window:', error);
+        alert('Error generating receipt. Please try again.');
+    }
 }
 
 /**
@@ -708,32 +1142,17 @@ function updateRecentActivity() {
  * Update statistics display
  */
 function updateStats() {
-    // Update overview stats
-    if (activeTablesCount) {
-        activeTablesCount.textContent = waiterStats.activeTables || 0;
-    }
-    if (pendingOrdersCount) {
-        pendingOrdersCount.textContent = waiterStats.pendingOrders || 0;
-    }
-    if (todayRevenue) {
-        todayRevenue.textContent = `${waiterStats.todayRevenue || 0} EGP`;
-    }
-    if (avgServiceTime) {
-        avgServiceTime.textContent = `${waiterStats.avgServiceTime || 0} min`;
-    }
-
-    // Update performance stats
-    if (totalTablesServed) {
-        totalTablesServed.textContent = waiterStats.totalTablesServed || 0;
-    }
-    if (totalRevenue) {
-        totalRevenue.textContent = `${waiterStats.totalRevenue || 0} EGP`;
-    }
-    if (customerRating) {
-        customerRating.textContent = waiterStats.customerRating || '0.0';
-    }
-    if (orderAccuracy) {
-        orderAccuracy.textContent = `${waiterStats.orderAccuracy || 100}%`;
+    // Update from server stats if available
+    if (waiterStats) {
+        if (customerRating) {
+            customerRating.textContent = waiterStats.customerRating || '0.0';
+        }
+        if (orderAccuracy) {
+            orderAccuracy.textContent = `${waiterStats.orderAccuracy || 100}%`;
+        }
+        if (avgServiceTime) {
+            avgServiceTime.textContent = `${waiterStats.avgServiceTime || 0} min`;
+        }
     }
 }
 
@@ -800,27 +1219,126 @@ async function assistTable(tableId) {
 }
 
 /**
+ * Calculate performance metrics
+ */
+function calculatePerformanceMetrics() {
+    if (!waiterOrders.length) return;
+
+    const today = new Date().toDateString();
+    const todaysOrders = waiterOrders.filter(order =>
+        new Date(order.createdAt).toDateString() === today
+    );
+
+    // Tables served today (tables with paid orders)
+    const tablesServedToday = new Set(
+        todaysOrders
+            .filter(order => order.status === 'paid')
+            .map(order => order.tableNumber)
+    ).size;
+
+    // Total orders created today
+    const totalOrdersToday = todaysOrders.length;
+
+    // Today's revenue from paid orders
+    const todaysRevenue = todaysOrders
+        .filter(order => order.status === 'paid')
+        .reduce((sum, order) => {
+            const orderTotal = order.items.reduce((itemSum, item) =>
+                itemSum + (item.price * item.quantity), 0
+            );
+            return (sum + 0.3*orderTotal);
+        }, 0);
+
+
+    // Find peak hour
+    const hourCounts = {};
+    todaysOrders.forEach(order => {
+        const hour = new Date(order.createdAt).getHours();
+        hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+    });
+
+    let peakHourText = 'N/A';
+    if (Object.keys(hourCounts).length > 0) {
+        const peakHour = Object.entries(hourCounts).reduce((a, b) =>
+            a[1] > b[1] ? a : b
+        )[0];
+        peakHourText = `${peakHour}:00 - ${parseInt(peakHour) + 1}:00`;
+    }
+
+
+    // Update performance metrics
+    if (totalTablesServed) {
+        totalTablesServed.textContent = tablesServedToday;
+    }
+    if (totalOrdersCreated) {
+        totalOrdersCreated.textContent = totalOrdersToday;
+    }
+    if (totalRevenue) {
+        totalRevenue.textContent = `${todaysRevenue.toFixed(2)} EGP`;
+    }
+    if (peakHour) {
+        peakHour.textContent = peakHourText;
+    }
+
+    // Update overview stats
+    if (activeTablesCount) {
+        activeTablesCount.textContent = waiterTables.filter(table =>
+            table.status === 'occupied' || table.status === 'need-assistance'
+        ).length;
+    }
+    if (pendingOrdersCount) {
+        pendingOrdersCount.textContent = waiterOrders.filter(order =>
+            order.status === 'pending' || order.status === 'preparing'
+        ).length;
+    }
+    if (todayRevenue) {
+        todayRevenue.textContent = `${todaysRevenue.toFixed(2)} EGP`;
+    }
+}
+
+/**
  * Update order status
  */
 async function updateOrderStatus(orderId, newStatus) {
     try {
+        // Update local state first
+        const orderIndex = waiterOrders.findIndex(o => o.id === orderId);
+        if (orderIndex !== -1) {
+            waiterOrders[orderIndex].status = newStatus;
+        }
+
+        // Update on server if available
         const response = await fetch(`${DASHBOARD_API_BASE}/orders/${orderId}/status`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                status: newStatus
+                status: newStatus,
+                waiterId: currentWaiter.id
             })
         });
 
-        if (response.ok) {
-            showMessage(`Order status updated to ${newStatus}`, 'success');
-            await loadOrders();
-            await loadTables();
-        } else {
-            showMessage('Failed to update order status', 'error');
+        if (!response.ok) {
+            console.warn('Failed to update order status on server, using local state');
         }
+
+        // Update UI
+        displayOrders();
+        populateBillingOrderSelect();
+        updateRecentActivity();
+        calculatePerformanceMetrics();
+
+        showMessage(`Order status updated to ${newStatus}`, 'success');
+
+        // If marking as served, also update table status
+        if (newStatus === 'served') {
+            const order = waiterOrders[orderIndex];
+            if (order) {
+                await updateTableStatus(order.tableNumber, 'need-cleaning');
+            }
+        }
+
     } catch (error) {
         console.error('Error updating order status:', error);
         showMessage('Error updating order status', 'error');
@@ -828,10 +1346,64 @@ async function updateOrderStatus(orderId, newStatus) {
 }
 
 /**
- * Generate bill for order
+ * Generate bill for order (redirects to billing view)
  */
 function generateBill(orderId) {
-    window.location.href = `waiter.html?order=${orderId}`;
+    // Switch to billing view
+    switchView('billing');
+
+    // Find and select the order
+    setTimeout(() => {
+        const order = waiterOrders.find(o => o.id === orderId);
+        if (order && orderSelect) {
+            orderSelect.value = orderId;
+            loadOrderForBilling();
+        }
+    }, 100);
+}
+
+/**
+ * Show message in billing section
+ */
+function showBillingMessage(message, type) {
+    if (!billingMessage) return;
+
+    billingMessage.textContent = message;
+    billingMessage.className = `message ${type}`;
+
+    setTimeout(() => {
+        billingMessage.className = 'message';
+    }, 5000);
+}
+
+/**
+ * Update recent activity section
+ */
+function updateRecentActivity() {
+    if (!recentActivity) return;
+
+    const recentOrders = waiterOrders
+        .filter(order => order.assignedWaiter === currentWaiter.id)
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(0, 5);
+
+    if (recentOrders.length === 0) {
+        recentActivity.innerHTML = '<p>No recent activity.</p>';
+        return;
+    }
+
+    recentActivity.innerHTML = recentOrders.map(order => {
+        const total = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const statusClass = getOrderStatusClass(order.status);
+        return `
+            <div class="order-card">
+                <h4>Order #${order.id} - Table ${order.tableNumber}</h4>
+                <div><strong>Status:</strong> <span class="status-badge ${statusClass}">${order.status}</span></div>
+                <div><strong>Total:</strong> ${total.toFixed(2)} EGP</div>
+                <div><strong>Time:</strong> ${new Date(order.createdAt).toLocaleTimeString()}</div>
+            </div>
+        `;
+    }).join('');
 }
 
 /**
@@ -958,6 +1530,19 @@ function setupEventListeners() {
         });
     }
 
+    if (goToBillingBtn) {
+        goToBillingBtn.addEventListener('click', () => {
+            switchView('billing');
+        });
+    }
+
+    const loadOrderBtn = document.getElementById('load-order-btn');
+    if (loadOrderBtn) {
+        loadOrderBtn.addEventListener('click', () => {
+            loadOrderForBilling();
+        });
+    }
+
     // Modal close buttons
     const closeOrderModalBtn = document.getElementById('close-order-modal');
     const closeTableModalBtn = document.getElementById('close-table-modal');
@@ -978,6 +1563,12 @@ function setupEventListeners() {
     // Cancel order button
     if (cancelOrderBtn) {
         cancelOrderBtn.addEventListener('click', closeOrderModal);
+    }
+
+    // Process payment button
+    const processPaymentBtn = document.getElementById('process-payment-btn');
+    if (processPaymentBtn) {
+        processPaymentBtn.addEventListener('click', processPayment);
     }
 
     // Close modals when clicking outside

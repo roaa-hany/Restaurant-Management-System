@@ -133,7 +133,7 @@
         }
         .order-header {
             display: flex;
-            justify-content: between;
+            justify-content: space-between;
             align-items: center;
             margin-bottom: 1rem;
         }
@@ -163,6 +163,10 @@
         }
         .btn-danger {
             background: #dc3545;
+            color: white;
+        }
+        .btn-secondary {
+            background: #6c757d;
             color: white;
         }
         .btn:hover {
@@ -210,174 +214,342 @@
             color: #721c24;
             border: 1px solid #f5c6cb;
         }
+        .bill-preview {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        .bill-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .bill-totals {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 2px solid #667eea;
+        }
+        .bill-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            font-size: 1.1rem;
+        }
+        .bill-row.total {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-top: 0.5rem;
+        }
+        .status-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 3px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status-served {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        .status-paid {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-preparing {
+            background: #cce5ff;
+            color: #004085;
+        }
     </style>
 </head>
 <body>
-    <header>
-        <h1>👨‍💼 Waiter Dashboard</h1>
-    </header>
+<header>
+    <h1>👨‍💼 Waiter Dashboard</h1>
+</header>
 
-    <main>
-        <div class="dashboard-header">
-            <h2>Welcome, <span id="waiter-name">Waiter</span>!</h2>
-            <button class="logout-btn" id="logout-btn">Logout</button>
+<main>
+    <div class="dashboard-header">
+        <h2>Welcome, <span id="waiter-name">Waiter</span>!</h2>
+        <button class="logout-btn" id="logout-btn">Logout</button>
+    </div>
+
+    <div class="dashboard-content">
+        <div class="dashboard-nav">
+            <button class="nav-btn active" data-view="overview">Overview</button>
+            <button class="nav-btn" data-view="tables">Table Management</button>
+            <button class="nav-btn" data-view="orders">Order Management</button>
+            <button class="nav-btn" data-view="billing">Billing System</button>
+            <button class="nav-btn" data-view="performance">Performance</button>
         </div>
 
-        <div class="dashboard-content">
-            <div class="dashboard-nav">
-                <button class="nav-btn active" data-view="overview">Overview</button>
-                <button class="nav-btn" data-view="tables">Table Management</button>
-                <button class="nav-btn" data-view="orders">Order Management</button>
-                <button class="nav-btn" data-view="performance">Performance</button>
-            </div>
-
-            <!-- Overview View -->
-            <div id="overview-view" class="view active">
-                <h2>Dashboard Overview</h2>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-number" id="active-tables-count">0</div>
-                        <div class="stat-label">Active Tables</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="pending-orders-count">0</div>
-                        <div class="stat-label">Pending Orders</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="today-revenue">0 EGP</div>
-                        <div class="stat-label">Today's Revenue</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="avg-service-time">0 min</div>
-                        <div class="stat-label">Avg. Service Time</div>
-                    </div>
+        <!-- Overview View -->
+        <div id="overview-view" class="view active">
+            <h2>Dashboard Overview</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="active-tables-count">0</div>
+                    <div class="stat-label">Active Tables</div>
                 </div>
-
-                <div style="margin-top: 2rem;">
-                    <h3>Quick Actions</h3>
-                    <div style="display: flex; gap: 1rem; margin-top: 1rem;">
-                        <a href="waiter.html" class="btn btn-primary" style="text-decoration: none;">Go to Billing System</a>
-                        <button class="btn btn-success" id="new-order-btn">Create New Order</button>
-                        <button class="btn btn-warning" id="view-tables-btn">View Tables</button>
-                    </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="pending-orders-count">0</div>
+                    <div class="stat-label">Pending Orders</div>
                 </div>
-
-                <div style="margin-top: 2rem;">
-                    <h3>Recent Activity</h3>
-                    <div id="recent-activity" class="orders-list">
-                        <!-- Recent activity will be populated here -->
-                    </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="today-revenue">0 EGP</div>
+                    <div class="stat-label">Today's Revenue</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="avg-service-time">0 min</div>
+                    <div class="stat-label">Avg. Service Time</div>
                 </div>
             </div>
 
-            <!-- Table Management View -->
-            <div id="tables-view" class="view">
-                <h2>Table Management</h2>
-                <div class="table-grid" id="tables-container">
-                    <!-- Tables will be populated here -->
+            <div style="margin-top: 2rem;">
+                <h3>Quick Actions</h3>
+                <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                    <button class="btn btn-primary" id="new-order-btn">Create New Order</button>
+                    <button class="btn btn-warning" id="view-tables-btn">View Tables</button>
+                    <button class="btn btn-success" id="go-to-billing-btn">Go to Billing</button>
                 </div>
             </div>
 
-            <!-- Order Management View -->
-            <div id="orders-view" class="view">
-                <h2>Order Management</h2>
-                <div class="orders-list" id="orders-container">
-                    <!-- Orders will be populated here -->
+            <div style="margin-top: 2rem;">
+                <h3>Recent Activity</h3>
+                <div id="recent-activity" class="orders-list">
+                    <!-- Recent activity will be populated here -->
                 </div>
             </div>
-
-            <!-- Performance View -->
-            <div id="performance-view" class="view">
-                <h2>Performance Metrics</h2>
-                <div class="performance-metrics">
-                    <div class="metric-card">
-                        <div class="metric-value" id="total-tables-served">0</div>
-                        <div class="stat-label">Total Tables Served Today</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-value" id="total-revenue">0 EGP</div>
-                        <div class="stat-label">Total Revenue Today</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-value" id="customer-rating">0.0</div>
-                        <div class="stat-label">Average Customer Rating</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-value" id="order-accuracy">100%</div>
-                        <div class="stat-label">Order Accuracy</div>
-                    </div>
-                </div>
-
-                <div style="margin-top: 2rem;">
-                    <h3>Recent Feedback</h3>
-                    <div id="feedback-list">
-                        <!-- Feedback will be populated here -->
-                    </div>
-                </div>
-            </div>
-
-            <div id="dashboard-message" class="message"></div>
         </div>
-        <!-- Order Creation Modal -->
-        <div id="order-modal" class="modal">
-            <div class="modal-content" style="max-width: 600px;">
-                <span class="close" id="close-order-modal">&times;</span>
-                <h2>Create New Order</h2>
-                <form id="order-form">
+
+        <!-- Table Management View -->
+        <div id="tables-view" class="view">
+            <h2>Table Management</h2>
+            <div class="table-grid" id="tables-container">
+                <!-- Tables will be populated here -->
+            </div>
+        </div>
+
+        <!-- Order Management View -->
+        <div id="orders-view" class="view">
+            <h2>Order Management</h2>
+            <div class="orders-list" id="orders-container">
+                <!-- Orders will be populated here -->
+            </div>
+        </div>
+
+        <!-- Billing System View -->
+        <div id="billing-view" class="view">
+            <h2>Billing System</h2>
+            <div class="billing-container">
+                <div class="form-section">
+                    <h3>Generate Bill</h3>
                     <div class="form-group">
-                        <label for="order-table">Table Number *</label>
-                        <select id="order-table" name="tableNumber" required>
-                            <option value="">Select a table</option>
+                        <label for="order-select">Select Order:</label>
+                        <select id="order-select">
+                            <option value="">-- Select an order --</option>
+                        </select>
+                        <button id="load-order-btn" class="btn btn-secondary" style="margin-top: 0.5rem;">Load Order</button>
+                    </div>
+                </div>
+
+                <div id="bill-preview" class="bill-preview" style="display: none;">
+                    <h3>Bill Preview</h3>
+                    <div id="bill-items"></div>
+                    <div class="bill-totals">
+                        <div class="bill-row">
+                            <span>Subtotal:</span>
+                            <span id="bill-subtotal">0.00 EGP</span>
+                        </div>
+                        <div class="bill-row">
+                            <span>Tax (10%):</span>
+                            <span id="bill-tax">0.00 EGP</span>
+                        </div>
+                        <div class="bill-row total">
+                            <span>Total:</span>
+                            <span id="bill-total">0.00 EGP</span>
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <label for="payment-method">Payment Method:</label>
+                        <select id="payment-method">
+                            <option value="cash">Cash</option>
+                            <option value="card">Card</option>
+                            <option value="digital">Digital Payment</option>
                         </select>
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="order-customer">Customer Name</label>
-                        <input type="text" id="order-customer" name="customerName" placeholder="Optional">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Menu Items</label>
-                        <div id="menu-items-container" class="menu-items-list">
-                            <!-- Menu items will be populated here -->
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <h4>Selected Items</h4>
-                        <div id="selected-items" class="selected-items">
-                            <!-- Selected items will appear here -->
-                        </div>
-                        <div id="order-total" class="order-total">
-                            Total: <span>0.00</span> EGP
-                        </div>
-                    </div>
-
-                    <div class="form-actions">
-                        <button type="button" class="btn btn-secondary" id="cancel-order">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Create Order</button>
-                    </div>
-                </form>
+                    <button id="process-payment-btn" class="btn btn-primary">Process Payment</button>
+                </div>
             </div>
+            <div id="billing-message" class="message"></div>
         </div>
 
-        <!-- Table Details Modal -->
-        <div id="table-modal" class="modal">
-            <div class="modal-content" style="max-width: 500px;">
-                <span class="close" id="close-table-modal">&times;</span>
-                <h2>Table <span id="modal-table-number"></span></h2>
-                <div id="table-details">
-                    <!-- Table details will be populated here -->
+        <!-- Performance View -->
+        <div id="performance-view" class="view">
+            <h2>Performance Metrics</h2>
+            <div class="performance-metrics">
+                <div class="metric-card">
+                    <div class="metric-value" id="total-tables-served">0</div>
+                    <div class="stat-label">Total Tables Served Today</div>
                 </div>
-                <div class="modal-actions">
-                    <button class="btn btn-primary" id="create-order-btn">Create Order</button>
-                    <button class="btn btn-warning" id="request-assistance-btn">Request Assistance</button>
-                    <button class="btn btn-success" id="mark-available-btn">Mark as Available</button>
+                <div class="metric-card">
+                    <div class="metric-value" id="total-orders-created">0</div>
+                    <div class="stat-label">Total Orders Created</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="total-revenue">0 EGP</div>
+                    <div class="stat-label">Total Revenue Today</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="customer-rating">0.0</div>
+                    <div class="stat-label">Average Customer Rating</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="peak-hour">N/A</div>
+                    <div class="stat-label">Peak Hour</div>
+                </div>
+            </div>
+
+            <div style="margin-top: 2rem;">
+                <h3>Recent Feedback</h3>
+                <div id="feedback-list">
+                    <!-- Feedback will be populated here -->
                 </div>
             </div>
         </div>
-    </main>
 
-    <script type="module" src="js/waiter-dashboard.js"></script>
+        <div id="dashboard-message" class="message"></div>
+    </div>
+
+    <!-- Order Creation Modal -->
+    <div id="order-modal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="close" id="close-order-modal">&times;</span>
+            <h2>Create New Order</h2>
+            <form id="order-form">
+                <div class="form-group">
+                    <label for="order-table">Table Number *</label>
+                    <select id="order-table" name="tableNumber" required>
+                        <option value="">Select a table</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="order-customer">Customer Name</label>
+                    <input type="text" id="order-customer" name="customerName" placeholder="Optional">
+                </div>
+
+                <div class="form-group">
+                    <label>Menu Items</label>
+                    <div id="menu-items-container" class="menu-items-list">
+                        <!-- Menu items will be populated here -->
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <h4>Selected Items</h4>
+                    <div id="selected-items" class="selected-items">
+                        <!-- Selected items will appear here -->
+                    </div>
+                    <div id="order-total" class="order-total">
+                        Total: <span>0.00</span> EGP
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancel-order">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Order</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Table Details Modal -->
+    <div id="table-modal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <span class="close" id="close-table-modal">&times;</span>
+            <h2>Table <span id="modal-table-number"></span></h2>
+            <div id="table-details">
+                <!-- Table details will be populated here -->
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" id="create-order-btn">Create Order</button>
+                <button class="btn btn-warning" id="request-assistance-btn">Request Assistance</button>
+                <button class="btn btn-success" id="mark-available-btn">Mark as Available</button>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Receipt Template (Hidden) -->
+<div id="receipt-template" style="display: none;">
+    <div class="receipt-container">
+        <div class="receipt-header">
+            <div class="restaurant-name">Egyptian Restaurant</div>
+            <div>123 Nile Street, Cairo</div>
+            <div>Phone: (123) 456-7890</div>
+            <div>VAT: 123456789</div>
+        </div>
+
+        <div class="receipt-info">
+            <div><strong>Receipt #:</strong> <span id="receipt-number">N/A</span></div>
+            <div><strong>Order #:</strong> <span id="order-number">N/A</span></div>
+            <div><strong>Table #:</strong> <span id="table-number">N/A</span></div>
+            <div><strong>Date:</strong> <span id="receipt-date">N/A</span></div>
+            <div><strong>Time:</strong> <span id="receipt-time">N/A</span></div>
+            <div><strong>Customer:</strong> <span id="customer-name">N/A</span></div>
+        </div>
+
+        <table class="receipt-table">
+            <thead>
+            <tr>
+                <th>Item</th>
+                <th align="center">Qty</th>
+                <th align="right">Price</th>
+                <th align="right">Total</th>
+            </tr>
+            </thead>
+            <tbody id="receipt-items">
+            <!-- Items will be populated here -->
+            </tbody>
+        </table>
+
+        <div class="totals-section">
+            <div class="total-row">
+                <span>Subtotal:</span>
+                <span id="receipt-subtotal">0.00 EGP</span>
+            </div>
+            <div class="total-row">
+                <span>Tax (10%):</span>
+                <span id="receipt-tax">0.00 EGP</span>
+            </div>
+            <div class="total-row grand-total">
+                <span>TOTAL:</span>
+                <span id="receipt-total">0.00 EGP</span>
+            </div>
+        </div>
+
+        <div class="payment-method">
+            Payment Method: <span id="receipt-payment-method">N/A</span>
+        </div>
+
+        <div class="thank-you">
+            Thank you for dining with us!
+        </div>
+
+        <div class="footer">
+            <div>*** RECEIPT ***</div>
+            <div>Keep this receipt for your records</div>
+            <div>For inquiries: info@egyptianrestaurant.com</div>
+            <div id="receipt-timestamp">N/A</div>
+        </div>
+    </div>
+</div>
+
+<script src="js/waiter-dashboard.js"></script>
 </body>
 </html>

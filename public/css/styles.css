@@ -543,10 +543,38 @@ main {
     border-bottom: 1px solid #eee;
 }
 
-.status-pending { color: #ffc107; }
-.status-preparing { color: #17a2b8; }
-.status-ready { color: #28a745; }
-.status-served { color: #007bff; }
+.status-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 3px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.status-pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-preparing {
+    background: #cce5ff;
+    color: #004085;
+}
+
+.status-ready {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.status-served {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-paid {
+    background: #e2e3e5;
+    color: #383d41;
+}
 
 .modal-actions {
     display: flex;
@@ -604,3 +632,111 @@ main {
     }
 }
 
+/* Receipt Styles (add to the end of styles.css) */
+.receipt-container {
+    max-width: 300px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: 'Courier New', monospace;
+    line-height: 1.4;
+}
+
+.receipt-header {
+    text-align: center;
+    border-bottom: 2px dashed #000;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+.restaurant-name {
+    font-size: 22px;
+    font-weight: bold;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+}
+
+.receipt-info {
+    margin: 10px 0;
+    font-size: 14px;
+}
+
+.receipt-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 15px 0;
+    font-size: 14px;
+}
+
+.receipt-table th {
+    border-bottom: 1px solid #000;
+    padding: 5px;
+    text-align: left;
+    font-weight: bold;
+}
+
+.receipt-table td {
+    padding: 5px;
+    border-bottom: 1px dashed #ddd;
+}
+
+.totals-section {
+    border-top: 2px dashed #000;
+    margin-top: 15px;
+    padding-top: 10px;
+    font-size: 15px;
+}
+
+.total-row {
+    display: flex;
+    justify-content: space-between;
+    margin: 5px 0;
+}
+
+.grand-total {
+    font-size: 18px;
+    font-weight: bold;
+    margin-top: 10px;
+    border-top: 2px solid #000;
+    padding-top: 10px;
+}
+
+.footer {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 12px;
+    color: #666;
+    border-top: 1px dashed #666;
+    padding-top: 10px;
+}
+
+.thank-you {
+    text-align: center;
+    margin: 20px 0;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.payment-method {
+    margin: 10px 0;
+    font-weight: bold;
+}
+
+/* Print Styles */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    .receipt-container, .receipt-container * {
+        visibility: visible;
+    }
+    .receipt-container {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+    }
+    @page {
+        size: auto;
+        margin: 0;
+    }
+}

@@ -37,7 +37,7 @@ function handleWaiterLogout() {
  */
 function initWaiterDashboard() {
   checkWaiterAuth();
-  
+
   const logoutBtn = document.getElementById('logout-btn');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', handleWaiterLogout);
