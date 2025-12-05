@@ -1,0 +1,21 @@
+{
+  "menu": [],
+  "tables": [],
+  "reservations": [],
+  "orders": [],
+  "bills": [],
+  "staff": [
+    {
+      "id": "1",
+      "username": "waiter",
+      "password": "waiter123",
+      "role": "waiter"
+    },
+    {
+      "id": "2",
+      "username": "manager",
+      "password": "manager123",
+      "role": "manager"
+    }
+  ]
+}

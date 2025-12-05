@@ -42,6 +42,9 @@ export interface OrderItem {
   quantity: number;
   price: number;
   notes?: string;
+  // Added these to match sample data and frontend display
+  id?: string; 
+  name?: string; 
 }
 
 export interface Bill {
@@ -61,7 +64,9 @@ export interface Table {
   id: string;
   number: number;
   capacity: number;
-  status: 'available' | 'occupied' | 'reserved' | 'need-assistance';
+  // Added 'maintenance' to status union
+  status: 'available' | 'occupied' | 'reserved' | 'need-assistance' | 'maintenance';
   assignedWaiter?: string;
   currentOrder?: string;
+  location?: string; // Added this property
 }

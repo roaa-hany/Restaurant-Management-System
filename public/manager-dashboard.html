@@ -5,49 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manager Dashboard - Egyptian Restaurant</title>
     <link rel="stylesheet" href="css/styles.css">
-    <style>
-        .dashboard-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-        }
-        .logout-btn {
-            padding: 0.5rem 1.5rem;
-            background: #dc3545;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1rem;
-        }
-        .logout-btn:hover {
-            background: #c82333;
-        }
-        .dashboard-content {
-            background: white;
-            padding: 3rem;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            text-align: center;
-        }
-        .dashboard-content h2 {
-            color: #667eea;
-            margin-bottom: 1rem;
-        }
-        .dashboard-content p {
-            color: #666;
-            font-size: 1.1rem;
-            line-height: 1.8;
-        }
-        .feature-placeholder {
-            margin-top: 2rem;
-            padding: 1.5rem;
-            background: #f8f9fa;
-            border-radius: 5px;
-            border-left: 4px solid #667eea;
-        }
-    </style>
 </head>
 <body>
     <header>
@@ -61,24 +18,190 @@
         </div>
 
         <div class="dashboard-content">
-            <h2>Manager Dashboard</h2>
-            <p>This is the manager dashboard page. Manager-specific features will be implemented here in future sprints.</p>
-            
-            <div class="feature-placeholder">
-                <h3>Future Features:</h3>
-                <ul style="text-align: left; display: inline-block; margin-top: 1rem;">
-                    <li>Restaurant analytics and reports</li>
-                    <li>Staff management</li>
-                    <li>Menu management</li>
-                    <li>Inventory control</li>
-                    <li>Financial reports</li>
-                    <li>Reservation management</li>
-                </ul>
+            <div class="dashboard-nav">
+                <button class="nav-btn active" data-view="menu-management">Menu Management</button>
+                <button class="nav-btn" data-view="table-management">Table Management</button>
+                <button class="nav-btn" data-view="reservations">Reservations</button>
             </div>
+
+            <!-- Menu Management View -->
+            <div id="menu-management-view" class="view active">
+                <div class="section-header">
+                    <h2>Menu Management</h2>
+                    <button class="btn btn-primary" id="add-menu-item-btn">+ Add New Item</button>
+                </div>
+
+                <div class="menu-filters">
+                    <button class="filter-btn active" data-category="all">All</button>
+                    <button class="filter-btn" data-category="appetizer">Appetizers</button>
+                    <button class="filter-btn" data-category="main">Main Dishes</button>
+                    <button class="filter-btn" data-category="dessert">Desserts</button>
+                    <button class="filter-btn" data-category="beverage">Beverages</button>
+                </div>
+
+                <div class="management-grid" id="menu-items-grid">
+                    <!-- Menu items will be populated here -->
+                </div>
+            </div>
+
+            <!-- Table Management View -->
+            <div id="table-management-view" class="view">
+                <div class="section-header">
+                    <h2>Table Management</h2>
+                    <button class="btn btn-primary" id="add-table-btn">+ Add New Table</button>
+                </div>
+
+                <div class="tables-grid" id="tables-grid">
+                    <!-- Tables will be populated here -->
+                </div>
+            </div>
+
+            <!-- Reservations View -->
+            <div id="reservations-view" class="view">
+                <div class="section-header">
+                    <h2>Reservations Management</h2>
+                </div>
+
+                <div class="reservations-filters">
+                    <select id="reservation-filter" class="filter-select">
+                        <option value="all">All Reservations</option>
+                        <option value="today">Today</option>
+                        <option value="upcoming">Upcoming</option>
+                        <option value="past">Past</option>
+                    </select>
+                    <input type="date" id="reservation-date-filter" class="filter-input">
+                </div>
+
+                <div class="reservations-list" id="reservations-list">
+                    <!-- Reservations will be populated here -->
+                </div>
+            </div>
+
+            <div id="manager-message" class="message"></div>
         </div>
     </main>
+
+    <!-- Add/Edit Menu Item Modal -->
+    <div id="menu-item-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="close-menu-modal">&times;</span>
+            <h2 id="menu-modal-title">Add New Menu Item</h2>
+            <form id="menu-item-form">
+                <input type="hidden" id="item-id" name="itemId">
+                
+                <div class="form-group">
+                    <label for="item-name">Item Name *</label>
+                    <input type="text" id="item-name" name="name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="item-category">Category *</label>
+                    <select id="item-category" name="category" required>
+                        <option value="">Select Category</option>
+                        <option value="appetizer">Appetizer</option>
+                        <option value="main">Main Dish</option>
+                        <option value="dessert">Dessert</option>
+                        <option value="beverage">Beverage</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="item-description">Description *</label>
+                    <textarea id="item-description" name="description" rows="3" required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="item-price">Price (EGP) *</label>
+                    <input type="number" id="item-price" name="price" step="0.01" min="0" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="item-ingredients">Ingredients (comma-separated)</label>
+                    <input type="text" id="item-ingredients" name="ingredients" placeholder="e.g., Tomato, Onion, Garlic">
+                </div>
+
+                <div class="form-group">
+                    <label for="item-allergens">Allergens (comma-separated)</label>
+                    <input type="text" id="item-allergens" name="allergens" placeholder="e.g., Gluten, Dairy, Nuts">
+                </div>
+
+                <div class="form-group">
+                    <label for="item-image">Image URL</label>
+                    <input type="url" id="item-image" name="imageUrl" placeholder="https://example.com/image.jpg">
+                </div>
+
+                <div class="form-group checkbox-group">
+                    <label>
+                        <input type="checkbox" id="item-available" name="available" checked>
+                        Available for Order
+                    </label>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancel-menu-item">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add/Edit Table Modal -->
+    <div id="table-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="close-table-modal">&times;</span>
+            <h2 id="table-modal-title">Add New Table</h2>
+            <form id="table-form">
+                <input type="hidden" id="table-id" name="tableId">
+                
+                <div class="form-group">
+                    <label for="table-number">Table Number *</label>
+                    <input type="number" id="table-number" name="tableNumber" min="1" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="table-capacity">Capacity (Seats) *</label>
+                    <input type="number" id="table-capacity" name="capacity" min="1" max="20" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="table-status">Status *</label>
+                    <select id="table-status" name="status" required>
+                        <option value="available">Available</option>
+                        <option value="occupied">Occupied</option>
+                        <option value="reserved">Reserved</option>
+                        <option value="maintenance">Maintenance</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="table-location">Location</label>
+                    <input type="text" id="table-location" name="location" placeholder="e.g., Window side, Patio, Main hall">
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancel-table">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Table</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Reservation Details Modal -->
+    <div id="reservation-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="close-reservation-modal">&times;</span>
+            <h2>Reservation Details</h2>
+            <div id="reservation-details">
+                <!-- Reservation details will be populated here -->
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-danger" id="cancel-reservation-btn">Cancel Reservation</button>
+                <button class="btn btn-success" id="confirm-reservation-btn">Confirm Reservation</button>
+                <button class="btn btn-secondary" id="close-reservation-details">Close</button>
+            </div>
+        </div>
+    </div>
 
     <script type="module" src="js/manager-dashboard.js"></script>
 </body>
 </html>
-
