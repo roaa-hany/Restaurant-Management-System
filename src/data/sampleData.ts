@@ -97,16 +97,16 @@ export const sampleMenuItems: MenuItem[] = [
 ];
 
 export const sampleTables: Table[] = [
-  { id: 'table_1', number: 1, capacity: 2, status: 'available' },
-  { id: 'table_2', number: 2, capacity: 4, status: 'available' },
-  { id: 'table_3', number: 3, capacity: 4, status: 'available' },
-  { id: 'table_4', number: 4, capacity: 6, status: 'available' },
-  { id: 'table_5', number: 5, capacity: 2, status: 'available' },
-  { id: 'table_6', number: 6, capacity: 4, status: 'available' },
-  { id: 'table_7', number: 7, capacity: 8, status: 'available' },
-  { id: 'table_8', number: 8, capacity: 4, status: 'available' },
-  { id: 'table_9', number: 9, capacity: 6, status: 'available' },
-  { id: 'table_10', number: 10, capacity: 2, status: 'available' }
+  { id: 'table_1', number: 1, capacity: 2, status: 'available', location: 'Main Hall'},
+  { id: 'table_2', number: 2, capacity: 4, status: 'available', location: 'Main Hall' },
+  { id: 'table_3', number: 3, capacity: 4, status: 'available', location: 'Main Hall'},
+  { id: 'table_4', number: 4, capacity: 6, status: 'available' , location: 'Terrace'},
+  { id: 'table_5', number: 5, capacity: 2, status: 'available' , location: 'Terrace'},
+  { id: 'table_6', number: 6, capacity: 4, status: 'available' , location: 'Terrace'},
+  { id: 'table_7', number: 7, capacity: 8, status: 'available' , location: 'VIP Section'},
+  { id: 'table_8', number: 8, capacity: 4, status: 'available' , location: 'VIP Section'},
+  { id: 'table_9', number: 9, capacity: 6, status: 'available' , location: 'VIP Section'},
+  { id: 'table_10', number: 10, capacity: 2, status: 'available' , location: 'Window Side'}
 ];
 
 export const sampleReservations: Reservation[] = [];
