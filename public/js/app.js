@@ -22,7 +22,7 @@ const reservationMessage = document.getElementById('reservation-message');
  * Initialize the customer application
  */
 async function initCustomerApp() {
-    await loadMenu();
+    await Promise.all([loadMenu(), loadAvailableTables()]);
     setupCustomerEventListeners();
 }
 /**
