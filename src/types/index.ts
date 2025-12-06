@@ -2,15 +2,17 @@
  * Type definitions for the Restaurant Management System
  */
 
+// sampleData.ts
 export interface MenuItem {
   id: string;
   name: string;
   description: string;
   price: number;
-  category: MenuCategory;
+  category: string;
   imageUrl: string;
   ingredients: string[];
   allergens: string[];
+  available: boolean;
 }
 
 export type MenuCategory = 'appetizer' | 'main' | 'dessert' | 'beverage';

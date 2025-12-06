@@ -19,9 +19,11 @@ app.use(express.static('public'));
 // In-memory data stores (in a real app, these would be databases)
 // NOTE: Data is stored in server memory and will be lost when the server restarts.
 // For production, this should be replaced with a database (MongoDB, PostgreSQL, etc.)
+let menuItems: MenuItem[] = [...sampleMenuItems];
 let reservations: Reservation[] = [...sampleReservations];
 let orders: Order[] = [...sampleOrders];
 let tables: Table[] = [...sampleTables];
+
 // ==================== MENU ENDPOINTS ====================
 
 /**
@@ -29,7 +31,7 @@ let tables: Table[] = [...sampleTables];
  * Returns all menu items
  */
 app.get('/api/menu', (req: Request, res: Response) => {
-  res.json(sampleMenuItems);
+  res.json(menuItems);
 });
 
 /**
@@ -37,11 +39,85 @@ app.get('/api/menu', (req: Request, res: Response) => {
  * Returns a specific menu item by ID
  */
 app.get('/api/menu/:id', (req: Request, res: Response) => {
-  const item = sampleMenuItems.find(m => m.id === req.params.id);
+  const item = menuItems.find(m => m.id === req.params.id);
   if (!item) {
     return res.status(404).json({ error: 'Menu item not found' });
   }
   res.json(item);
+});
+
+/**
+ * POST /api/menu
+ * Create new menu item
+ */
+app.post('/api/menu', (req: Request, res: Response) => {
+  const newItem: MenuItem = {
+    id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    name: req.body.name,
+    description: req.body.description,
+    price: parseFloat(req.body.price),
+    category: req.body.category,
+    imageUrl: req.body.imageUrl || '',
+    ingredients: req.body.ingredients || [],
+    allergens: req.body.allergens || [],
+    available: req.body.available !== undefined ? req.body.available : true
+  };
+
+  menuItems.push(newItem);
+  res.status(201).json(newItem);
+});
+
+/**
+ * PUT /api/menu/:id
+ * Update menu item
+ */
+app.put('/api/menu/:id', (req: Request, res: Response) => {
+  const index = menuItems.findIndex(m => m.id === req.params.id);
+  if (index === -1) {
+    return res.status(404).json({ error: 'Menu item not found' });
+  }
+
+  menuItems[index] = {
+    ...menuItems[index],
+    name: req.body.name,
+    description: req.body.description,
+    price: parseFloat(req.body.price),
+    category: req.body.category,
+    imageUrl: req.body.imageUrl || menuItems[index].imageUrl,
+    ingredients: req.body.ingredients || menuItems[index].ingredients,
+    allergens: req.body.allergens || menuItems[index].allergens,
+    available: req.body.available !== undefined ? req.body.available : menuItems[index].available
+  };
+
+  res.json(menuItems[index]);
+});
+
+/**
+ * DELETE /api/menu/:id
+ * Delete a menu item
+ */
+app.delete('/api/menu/:id', (req: Request, res: Response) => {
+  const index = menuItems.findIndex(m => m.id === req.params.id);
+  if (index === -1) {
+    return res.status(404).json({ error: 'Menu item not found' });
+  }
+
+  menuItems.splice(index, 1);
+  res.json({ success: true });
+});
+
+/**
+ * POST /api/menu/:id/toggle-availability
+ * Toggle menu item availability
+ */
+app.post('/api/menu/:id/toggle-availability', (req: Request, res: Response) => {
+  const index = menuItems.findIndex(m => m.id === req.params.id);
+  if (index === -1) {
+    return res.status(404).json({ error: 'Menu item not found' });
+  }
+
+  menuItems[index].available = req.body.available;
+  res.json(menuItems[index]);
 });
 
 // ==================== TABLE ENDPOINTS ====================
@@ -52,6 +128,54 @@ app.get('/api/menu/:id', (req: Request, res: Response) => {
  */
 app.get('/api/tables', (req: Request, res: Response) => {
   res.json(tables);
+});
+
+/**
+ * POST /api/tables
+ * Create a new table
+ */
+app.post('/api/tables', (req, res) => {
+  const newTable: Table = {
+    id: `table_${Date.now()}`,
+    number: req.body.tableNumber,
+    capacity: req.body.capacity,
+    status: req.body.status || 'available',
+    location: req.body.location
+  };
+  tables.push(newTable);
+  res.status(201).json(newTable);
+});
+
+/**
+ * PUT /api/tables/:id
+ * Update generic table info (Capacity/Location)
+ */
+app.put('/api/tables/:id', (req, res) => {
+  const index = tables.findIndex(t => t.id === req.params.id);
+  if (index === -1) {
+    return res.status(404).json({ error: 'Table not found' });
+  }
+
+  // Update only the fields that are provided
+  if (req.body.tableNumber !== undefined) tables[index].number = req.body.tableNumber;
+  if (req.body.capacity !== undefined) tables[index].capacity = req.body.capacity;
+  if (req.body.status !== undefined) tables[index].status = req.body.status;
+  if (req.body.location !== undefined) tables[index].location = req.body.location;
+
+  res.json(tables[index]);
+});
+
+/**
+ * DELETE /api/tables/:id
+ * Delete a table
+ */
+app.delete('/api/tables/:id', (req, res) => {
+  const index = tables.findIndex(t => t.id === req.params.id);
+  if (index === -1) {
+    return res.status(404).json({ error: 'Table not found' });
+  }
+  tables.splice(index, 1);
+  res.status(200).json({ success: true });
 });
 
 /**
@@ -74,10 +198,10 @@ app.put('/api/tables/:id/status', (req: Request, res: Response) => {
   }
 
   const { status, assignedWaiter } = req.body;
-  
+
   if (status) table.status = status;
   if (assignedWaiter !== undefined) table.assignedWaiter = assignedWaiter;
-  
+
   res.json(table);
 });
 
@@ -92,10 +216,10 @@ app.post('/api/tables/:id/assign', (req: Request, res: Response) => {
   }
 
   const { waiterId } = req.body;
-  
+
   table.assignedWaiter = waiterId;
   table.status = 'occupied';
-  
+
   res.json(table);
 });
 
@@ -111,16 +235,6 @@ app.post('/api/tables/:id/assist', (req: Request, res: Response) => {
 
   table.status = 'need-assistance';
   res.json(table);
-});
-
-/**
- * GET /api/menu/category/:category
- * Returns menu items filtered by category
- */
-app.get('/api/menu/category/:category', (req: Request, res: Response) => {
-  const category = req.params.category as MenuItem['category'];
-  const filtered = sampleMenuItems.filter(m => m.category === category);
-  res.json(filtered);
 });
 
 // ==================== RESERVATION ENDPOINTS ====================
@@ -142,9 +256,6 @@ app.post('/api/reservations', (req: Request, res: Response) => {
 
   // Check if table is available
   const table = tables.find(t => t.number === tableNumber);
-  if (!table || table.status !== 'available') {
-    return res.status(400).json({ error: 'Table is not available for reservation' });
-  }
 
   const reservation: Reservation = {
     id: `res_${Date.now()}`,
@@ -155,19 +266,43 @@ app.post('/api/reservations', (req: Request, res: Response) => {
     reservationDate: reservationDate,
     reservationTime: reservationTime,
     numberOfGuests: req.body.numberOfGuests,
-    status: 'confirmed'
+    status: 'pending' // Default to pending so manager can confirm
   };
-
-  // Basic validation
-  if (!reservation.customerName || !reservation.reservationDate || !reservation.reservationTime) {
-    return res.status(400).json({ error: 'Missing required fields' });
-  }
-
-  // Update table status to reserved
-  table.status = 'reserved';
 
   reservations.push(reservation);
   res.status(201).json(reservation);
+});
+
+/**
+ * POST /api/reservations/:id/confirm
+ * Manager confirms reservation
+ */
+app.post('/api/reservations/:id/confirm', (req, res) => {
+  const reservation = reservations.find(r => r.id === req.params.id);
+  if (!reservation) {
+    return res.status(404).json({ error: 'Reservation not found' });
+  }
+  reservation.status = 'confirmed';
+  // Also update table status
+  const table = tables.find(t => t.number === reservation.tableNumber);
+  if (table) table.status = 'reserved';
+  res.json(reservation);
+});
+
+/**
+ * POST /api/reservations/:id/cancel
+ * Manager cancels reservation
+ */
+app.post('/api/reservations/:id/cancel', (req, res) => {
+  const reservation = reservations.find(r => r.id === req.params.id);
+  if (!reservation) {
+    return res.status(404).json({ error: 'Reservation not found' });
+  }
+  reservation.status = 'cancelled';
+  // Free up table if needed
+  const table = tables.find(t => t.number === reservation.tableNumber);
+  if (table && table.status === 'reserved') table.status = 'available';
+  res.json(reservation);
 });
 
 /**
@@ -186,10 +321,43 @@ app.get('/api/reservations/:id', (req: Request, res: Response) => {
 
 /**
  * GET /api/orders
- * Returns all orders
+ * Returns all orders (with optional status filter)
  */
 app.get('/api/orders', (req: Request, res: Response) => {
-  res.json(orders);
+  const statusFilter = req.query.status as string;
+
+  if (statusFilter) {
+    const statuses = statusFilter.split(',');
+    const filteredOrders = orders.filter(order => statuses.includes(order.status));
+
+    // Add item names to orders
+    const ordersWithNames = filteredOrders.map(order => ({
+      ...order,
+      items: order.items.map(item => {
+        const menuItem = menuItems.find(m => m.id === item.menuItemId);
+        return {
+          ...item,
+          name: menuItem ? menuItem.name : 'Unknown Item'
+        };
+      })
+    }));
+
+    return res.json(ordersWithNames);
+  }
+
+  // Return all orders with item names
+  const ordersWithNames = orders.map(order => ({
+    ...order,
+    items: order.items.map(item => {
+      const menuItem = menuItems.find(m => m.id === item.menuItemId);
+      return {
+        ...item,
+        name: menuItem ? menuItem.name : 'Unknown Item'
+      };
+    })
+  }));
+
+  res.json(ordersWithNames);
 });
 
 /**
@@ -242,7 +410,7 @@ app.get('/api/orders/:id', (req: Request, res: Response) => {
 
 /**
  * PUT /api/orders/:id/status
- * Updates order status
+ * Updates order status (unified endpoint for all status changes)
  */
 app.put('/api/orders/:id/status', (req: Request, res: Response) => {
   const order = orders.find(o => o.id === req.params.id);
@@ -250,8 +418,19 @@ app.put('/api/orders/:id/status', (req: Request, res: Response) => {
     return res.status(404).json({ error: 'Order not found' });
   }
 
-  const { status } = req.body;
-  order.status = status;
+  const { status, assignedChef, chefName, estimatedPrepTime, startTime, waiterId } = req.body;
+
+  // Update status
+  if (status) order.status = status;
+
+  // Kitchen-specific fields
+  if (assignedChef) (order as any).assignedChef = assignedChef;
+  if (chefName) (order as any).chefName = chefName;
+  if (estimatedPrepTime) (order as any).estimatedPrepTime = estimatedPrepTime;
+  if (startTime) (order as any).startTime = startTime;
+
+  // Update timestamp
+  (order as any).updatedAt = new Date().toISOString();
 
   // If order is paid, mark table as available
   if (status === 'paid') {
@@ -307,15 +486,15 @@ app.post('/api/bills/generate', (req: Request, res: Response) => {
  */
 app.post('/api/bills/:id/pay', (req: Request, res: Response) => {
   const { paymentMethod } = req.body;
-  
+
   // Update order status to paid
   const billId = req.params.id;
   const orderId = billId.replace('bill_', 'order_');
   const order = orders.find(o => o.id === orderId);
-  
+
   if (order) {
     order.status = 'paid';
-    
+
     // Mark table as available
     const table = tables.find(t => t.number === order.tableNumber);
     if (table) {
@@ -325,8 +504,8 @@ app.post('/api/bills/:id/pay', (req: Request, res: Response) => {
     }
   }
 
-  res.json({ 
-    success: true, 
+  res.json({
+    success: true,
     message: 'Payment processed successfully',
     billId: req.params.id,
     paymentMethod: paymentMethod
@@ -341,11 +520,11 @@ app.post('/api/bills/:id/pay', (req: Request, res: Response) => {
  */
 app.get('/api/waiters/:id/stats', (req: Request, res: Response) => {
   const waiterId = req.params.id;
-  
+
   const waiterOrders = orders.filter(order => order.assignedWaiter === waiterId);
   const activeTables = tables.filter(table => table.assignedWaiter === waiterId && table.status === 'occupied');
   const pendingOrders = waiterOrders.filter(order => order.status === 'pending' || order.status === 'preparing');
-  
+
   const today = new Date().toISOString().split('T')[0];
   const todayOrders = waiterOrders.filter(order => order.createdAt.startsWith(today));
   const todayRevenue = todayOrders.reduce((sum, order) => {
@@ -373,12 +552,13 @@ app.get('/api/waiters/:id/stats', (req: Request, res: Response) => {
  */
 const users = {
   waiter: { username: 'waiter', password: 'waiter123', role: 'waiter', name: 'Ahmed Waiter' },
-  manager: { username: 'manager', password: 'manager123', role: 'manager', name: 'Manager' }
+  manager: { username: 'manager', password: 'manager123', role: 'manager', name: 'Manager' },
+  kitchen: { username: 'chef1', password: 'chef123', role: 'chef', name: 'Chef' }
 };
 
 /**
  * POST /api/auth/login
- * Authenticates staff members (waiter or manager)
+ * Authenticates staff members (waiter, manager, or kitchen)
  */
 app.post('/api/auth/login', (req: Request, res: Response) => {
   const { username, password, role } = req.body;
@@ -389,7 +569,7 @@ app.post('/api/auth/login', (req: Request, res: Response) => {
 
   // Check if user exists
   const user = users[username as keyof typeof users];
-  
+
   if (!user || user.password !== password || user.role !== role) {
     return res.status(401).json({ error: 'Invalid credentials' });
   }
@@ -407,10 +587,92 @@ app.post('/api/auth/login', (req: Request, res: Response) => {
   });
 });
 
+// ==================== KITCHEN ORDER ENDPOINTS ====================
+
+/**
+ * GET /api/kitchen/orders
+ * Returns orders in a shape friendly for the kitchen dashboard
+ */
+app.get('/api/kitchen/orders', (req, res) => {
+  const kitchenOrders = orders.map(order => ({
+    ...order,
+    items: order.items.map(item => {
+      const menuItem = menuItems.find(m => m.id === item.menuItemId);
+      return {
+        ...item,
+        name: menuItem ? menuItem.name : 'Unknown Item'
+      };
+    })
+  }));
+
+  res.json(kitchenOrders);
+});
+
+/**
+ * POST /api/kitchen/orders/:id/accept
+ * Chef accepts an order and sets estimated prep time
+ */
+app.post('/api/kitchen/orders/:id/accept', (req: Request, res: Response) => {
+  const order = orders.find(o => o.id === req.params.id);
+  if (!order) {
+    return res.status(404).json({ error: 'Order not found' });
+  }
+
+  const { chefId, chefName, estimatedPrepTime } = req.body;
+  if (!estimatedPrepTime || estimatedPrepTime <= 0) {
+    return res.status(400).json({ error: 'Invalid estimated preparation time' });
+  }
+
+  order.status = 'preparing';
+  (order as any).assignedChef = chefId;
+  (order as any).chefName = chefName;
+  (order as any).estimatedPrepTime = estimatedPrepTime;
+  (order as any).startTime = new Date().toISOString();
+  (order as any).updatedAt = new Date().toISOString();
+
+  return res.json(order);
+});
+
+/**
+ * POST /api/kitchen/orders/:id/complete
+ * Chef finishes cooking – order becomes READY for the waiter
+ */
+app.post('/api/kitchen/orders/:id/complete', (req: Request, res: Response) => {
+  const order = orders.find(o => o.id === req.params.id);
+  if (!order) {
+    return res.status(404).json({ error: 'Order not found' });
+  }
+
+  order.status = 'ready';
+  (order as any).updatedAt = new Date().toISOString();
+
+  return res.json(order);
+});
+
+/**
+ * POST /api/kitchen/orders/:id/served
+ * Marks order as served to the customer (from kitchen point of view)
+ */
+app.post('/api/kitchen/orders/:id/served', (req: Request, res: Response) => {
+  const order = orders.find(o => o.id === req.params.id);
+  if (!order) {
+    return res.status(404).json({ error: 'Order not found' });
+  }
+
+  order.status = 'served';
+  (order as any).updatedAt = new Date().toISOString();
+
+  return res.json(order);
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
   console.log(`API endpoints available at http://localhost:${PORT}/api`);
   console.log(`Customer menu: http://localhost:${PORT}/index.html`);
   console.log(`Staff login: http://localhost:${PORT}/login.html`);
+  console.log('\nTest credentials:');
+  console.log('  Waiter:  username: waiter,  password: waiter123');
+  console.log('  Manager: username: manager, password: manager123');
+  console.log('  Kitchen: username: kitchen, password: kitchen123');
 });

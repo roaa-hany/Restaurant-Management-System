@@ -107,7 +107,7 @@
    */
   async function initManagerDashboard() {
     checkManagerAuth();
-    
+
     // Load initial data
     await Promise.all([
       loadManagerMenuItems(), // Changed from loadMenuItems
@@ -141,8 +141,8 @@
     if (!menuItemsGrid) return;
 
     const filteredItems = managerCurrentCategory === 'all' // Changed from currentCategory
-      ? managerMenuItems 
-      : managerMenuItems.filter(item => item.category === managerCurrentCategory); // Changed from currentCategory
+        ? managerMenuItems
+        : managerMenuItems.filter(item => item.category === managerCurrentCategory); // Changed from currentCategory
 
     if (filteredItems.length === 0) {
       menuItemsGrid.innerHTML = '<p class="no-data">No menu items found.</p>';
@@ -230,34 +230,34 @@
       const response = await fetch(`${MANAGER_API_BASE}/reservations`);
       if (response.ok) {
         let reservations = await response.json();
-        
+
         // Apply filters
         const today = new Date().toISOString().split('T')[0];
-        
+
         switch (filter) {
           case 'today':
-            reservations = reservations.filter((r: Reservation) => 
-              r.reservationDate === today
+            reservations = reservations.filter((r: Reservation) =>
+                r.reservationDate === today
             );
             break;
           case 'upcoming':
-            reservations = reservations.filter((r: Reservation) => 
-              r.reservationDate >= today && r.status !== 'cancelled'
+            reservations = reservations.filter((r: Reservation) =>
+                r.reservationDate >= today && r.status !== 'cancelled'
             );
             break;
           case 'past':
-            reservations = reservations.filter((r: Reservation) => 
-              r.reservationDate < today
+            reservations = reservations.filter((r: Reservation) =>
+                r.reservationDate < today
             );
             break;
         }
-        
+
         if (date) {
-          reservations = reservations.filter((r: Reservation) => 
-            r.reservationDate === date
+          reservations = reservations.filter((r: Reservation) =>
+              r.reservationDate === date
           );
         }
-        
+
         managerReservations = reservations;
         displayManagerReservations(); // Changed from displayReservations
       }
@@ -481,7 +481,7 @@
   function openManagerMenuItemModal(itemId?: string) { // Changed from openMenuItemModal
     const modal = document.getElementById('menu-item-modal');
     const form = document.getElementById('menu-item-form') as HTMLFormElement;
-    
+
     if (!modal || !form) return;
 
     if (itemId) {
@@ -505,7 +505,7 @@
       form.reset();
       (form.querySelector('#item-id') as HTMLInputElement).value = '';
     }
-    
+
     modal.style.display = 'block';
   }
 
@@ -514,7 +514,7 @@
    */
   async function handleManagerMenuItemSubmit(e: Event) { // Changed from handleMenuItemSubmit
     e.preventDefault();
-    
+
     if (!menuItemForm) return;
 
     const formData = new FormData(menuItemForm);
@@ -531,10 +531,10 @@
     };
 
     try {
-      const url = itemId 
-        ? `${MANAGER_API_BASE}/menu/${itemId}`
-        : `${MANAGER_API_BASE}/menu`;
-      
+      const url = itemId
+          ? `${MANAGER_API_BASE}/menu/${itemId}`
+          : `${MANAGER_API_BASE}/menu`;
+
       const method = itemId ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
@@ -565,7 +565,7 @@
   function openManagerTableModal(tableId?: string) { // Changed from openTableModal
     const modal = document.getElementById('table-modal');
     const form = document.getElementById('table-form') as HTMLFormElement;
-    
+
     if (!modal || !form) return;
 
     if (tableId) {
@@ -585,7 +585,7 @@
       form.reset();
       (form.querySelector('#table-id') as HTMLInputElement).value = '';
     }
-    
+
     modal.style.display = 'block';
   }
 
@@ -594,7 +594,7 @@
    */
   async function handleManagerTableSubmit(e: Event) { // Changed from handleTableSubmit
     e.preventDefault();
-    
+
     if (!tableForm) return;
 
     const formData = new FormData(tableForm);
@@ -607,10 +607,10 @@
     };
 
     try {
-      const url = tableId 
-        ? `${MANAGER_API_BASE}/tables/${tableId}`
-        : `${MANAGER_API_BASE}/tables`;
-      
+      const url = tableId
+          ? `${MANAGER_API_BASE}/tables/${tableId}`
+          : `${MANAGER_API_BASE}/tables`;
+
       const method = tableId ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
@@ -715,7 +715,7 @@
     // Handle menu item actions
     document.addEventListener('click', async (e) => {
       const target = e.target as HTMLElement;
-      
+
       // Edit menu item
       if (target.classList.contains('edit-menu-item')) {
         const itemId = target.getAttribute('data-id');
@@ -723,7 +723,7 @@
           openManagerMenuItemModal(itemId); // Changed from openMenuItemModal
         }
       }
-      
+
       // Toggle menu item availability
       if (target.classList.contains('toggle-availability')) {
         const itemId = target.getAttribute('data-id');
@@ -738,7 +738,7 @@
                 },
                 body: JSON.stringify({ available: !item.available })
               });
-              
+
               if (response.ok) {
                 showManagerMessage(`Menu item ${!item.available ? 'enabled' : 'disabled'} successfully`, 'success'); // Changed from showMessage
                 await loadManagerMenuItems(); // Changed from loadMenuItems
@@ -753,7 +753,7 @@
           }
         }
       }
-      
+
       // Delete menu item
       if (target.classList.contains('delete-menu-item')) {
         const itemId = target.getAttribute('data-id');
@@ -762,7 +762,7 @@
             const response = await fetch(`${MANAGER_API_BASE}/menu/${itemId}`, {
               method: 'DELETE'
             });
-            
+
             if (response.ok) {
               showManagerMessage('Menu item deleted successfully', 'success'); // Changed from showMessage
               await loadManagerMenuItems(); // Changed from loadMenuItems
@@ -776,7 +776,7 @@
           }
         }
       }
-      
+
       // Edit table
       if (target.classList.contains('edit-table')) {
         const tableId = target.getAttribute('data-id');
@@ -784,7 +784,7 @@
           openManagerTableModal(tableId); // Changed from openTableModal
         }
       }
-      
+
       // Delete table
       if (target.classList.contains('delete-table')) {
         const tableId = target.getAttribute('data-id');
@@ -793,7 +793,7 @@
             const response = await fetch(`${MANAGER_API_BASE}/tables/${tableId}`, {
               method: 'DELETE'
             });
-            
+
             if (response.ok) {
               showManagerMessage('Table deleted successfully', 'success'); // Changed from showMessage
               await loadManagerTables(); // Changed from loadTables
@@ -807,7 +807,7 @@
           }
         }
       }
-      
+
       // View reservation details
       if (target.classList.contains('view-reservation')) {
         const reservationId = target.getAttribute('data-id');
@@ -827,16 +827,16 @@
                 <p><strong>Status:</strong> <span class="status-badge ${reservation.status}">${reservation.status}</span></p>
               </div>
             `;
-            
+
             // Update button visibility based on status
             cancelReservationBtn.style.display = reservation.status === 'pending' || reservation.status === 'confirmed' ? 'block' : 'none';
             confirmReservationBtn.style.display = reservation.status === 'pending' ? 'block' : 'none';
-            
+
             reservationModal.style.display = 'block';
           }
         }
       }
-      
+
       // Confirm reservation from list
       if (target.classList.contains('confirm-reservation')) {
         const reservationId = target.getAttribute('data-id');
@@ -845,7 +845,7 @@
             const response = await fetch(`${MANAGER_API_BASE}/reservations/${reservationId}/confirm`, {
               method: 'POST'
             });
-            
+
             if (response.ok) {
               showManagerMessage('Reservation confirmed successfully', 'success'); // Changed from showMessage
               await loadManagerReservations(reservationFilter.value, reservationDateFilter.value || undefined); // Changed from loadReservations
@@ -859,7 +859,7 @@
           }
         }
       }
-      
+
       // Cancel reservation from list
       if (target.classList.contains('cancel-reservation')) {
         const reservationId = target.getAttribute('data-id');
@@ -868,7 +868,7 @@
             const response = await fetch(`${MANAGER_API_BASE}/reservations/${reservationId}/cancel`, {
               method: 'POST'
             });
-            
+
             if (response.ok) {
               showManagerMessage('Reservation cancelled successfully', 'success'); // Changed from showMessage
               await loadManagerReservations(reservationFilter.value, reservationDateFilter.value || undefined); // Changed from loadReservations

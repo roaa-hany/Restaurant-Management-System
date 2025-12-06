@@ -757,7 +757,7 @@ function handleTableClick(event) {
     const tableId = tableCard.getAttribute('data-table-id');
     const tableNumber = tableCard.getAttribute('data-table-number');
     const table = waiterTables.find(t => t.id === tableId);
-    
+
     if (!table) return;
 
     currentSelectedTable = table;
@@ -771,9 +771,9 @@ function showTableModal(table) {
     if (!tableModal || !modalTableNumber || !tableDetails) return;
 
     modalTableNumber.textContent = table.number;
-    
-    const tableOrders = waiterOrders.filter(order => 
-        order.tableNumber === table.number && 
+
+    const tableOrders = waiterOrders.filter(order =>
+        order.tableNumber === table.number &&
         order.status !== 'paid'
     );
 
@@ -826,7 +826,7 @@ function increaseItemQuantity(itemId) {
     if (!item) return;
 
     const existingItemIndex = selectedOrderItems.findIndex(i => i.menuItemId === itemId);
-    
+
     if (existingItemIndex > -1) {
         // Item already exists, increase quantity
         selectedOrderItems[existingItemIndex].quantity++;
@@ -854,7 +854,7 @@ function decreaseItemQuantity(itemId) {
     if (existingItemIndex === -1) return;
 
     const existingItem = selectedOrderItems[existingItemIndex];
-    
+
     if (existingItem.quantity > 1) {
         existingItem.quantity--;
     } else {
@@ -892,7 +892,7 @@ function updateSelectedItems() {
     selectedItemsContainer.innerHTML = selectedOrderItems.map(item => {
         const menuItem = waiterMenuItems.find(m => m.id === item.menuItemId);
         const itemName = menuItem ? menuItem.name : item.name;
-        
+
         return `
             <div class="selected-item">
                 <span class="item-name">${itemName}</span>
@@ -942,7 +942,7 @@ function showOrderModal(prefilledTable = '') {
     selectedOrderItems = [];
     updateSelectedItems();
     updateOrderTotal();
-    
+
     // Reset all quantity displays to 0
     waiterMenuItems.forEach(item => {
         updateItemQuantityDisplay(item.id);
@@ -961,7 +961,7 @@ function showOrderModal(prefilledTable = '') {
  */
 async function handleOrderSubmit(e) {
     e.preventDefault();
-    
+
     if (!orderForm) return;
 
     const formData = new FormData(orderForm);
@@ -1012,13 +1012,13 @@ async function handleOrderSubmit(e) {
 
         if (response.ok) {
             const newOrder = await response.json();
-            
+
             // Update table status
             await updateTableStatus(tableNumber, 'occupied');
-            
+
             showMessage(`Order #${newOrder.id} created successfully!`, 'success');
             closeOrderModal();
-            
+
             // Reload data
             await Promise.all([
                 loadTables(),
@@ -1548,11 +1548,11 @@ function setupEventListeners() {
     // Modal close buttons
     const closeOrderModalBtn = document.getElementById('close-order-modal');
     const closeTableModalBtn = document.getElementById('close-table-modal');
-    
+
     if (closeOrderModalBtn) {
         closeOrderModalBtn.addEventListener('click', closeOrderModal);
     }
-    
+
     if (closeTableModalBtn) {
         closeTableModalBtn.addEventListener('click', closeTableModal);
     }
@@ -1592,7 +1592,7 @@ function setupEventListeners() {
                 increaseItemQuantity(itemId);
             }
         }
-        
+
         // Decrease quantity
         if (e.target.classList.contains('decrease-btn')) {
             const itemId = e.target.getAttribute('data-item-id');
@@ -1600,7 +1600,7 @@ function setupEventListeners() {
                 decreaseItemQuantity(itemId);
             }
         }
-        
+
         // Remove item
         if (e.target.classList.contains('remove-btn')) {
             const itemId = e.target.getAttribute('data-item-id');
@@ -1619,7 +1619,7 @@ function showMessage(message, type) {
 
     dashboardMessage.textContent = message;
     dashboardMessage.className = `message ${type}`;
-    
+
     setTimeout(() => {
         dashboardMessage.className = 'message';
     }, 5000);
