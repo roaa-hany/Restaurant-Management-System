@@ -24,7 +24,8 @@ export interface Reservation {
   customerPhone: string;
   tableNumber: number;
   reservationDate: string; // ISO date string
-  reservationTime: string; // HH:mm format
+  reservationTime: string; // HH:mm format - start time
+  endTime: string; // HH:mm format - end time
   numberOfGuests: number;
   status: 'pending' | 'confirmed' | 'cancelled';
 }
@@ -71,4 +72,14 @@ export interface Table {
   assignedWaiter?: string;
   currentOrder?: string;
   location?: string; // Added this property
+}
+
+export interface Feedback {
+  id: string;
+  customerName: string;
+  customerEmail: string;
+  rating: number; // 1-5
+  comment: string;
+  createdAt: string; // ISO date string
+  status?: 'pending' | 'reviewed'; // Optional status for manager review
 }

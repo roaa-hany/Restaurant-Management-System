@@ -12,6 +12,6 @@
     "moduleResolution": "node"
   },
   "include": ["public/js/**/*.ts"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "public/js/waiter-dashboard.ts"]
 }
 

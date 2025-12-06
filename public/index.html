@@ -12,7 +12,9 @@
         <nav>
             <button class="nav-btn active" data-view="menu">Menu</button>
             <button class="nav-btn" data-view="reservation">Reservations</button>
+            <button class="nav-btn" data-view="feedback">Feedback</button>
             <a href="login.html" class="nav-btn" style="text-decoration: none; display: inline-block;">Staff Login</a>
+            <a href="index.html" class="nav-btn" style="text-decoration: none; display: inline-block; background: #28a745; color: white;">🏠 Home</a>
         </nav>
     </header>
 
@@ -60,8 +62,12 @@
                         <input type="date" id="reservationDate" name="reservationDate" required>
                     </div>
                     <div class="form-group">
-                        <label for="reservationTime">Time *</label>
+                        <label for="reservationTime">Start Time *</label>
                         <input type="time" id="reservationTime" name="reservationTime" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="endTime">End Time *</label>
+                        <input type="time" id="endTime" name="endTime" required>
                     </div>
                     <div class="form-group">
                         <label for="numberOfGuests">Number of Guests *</label>
@@ -70,6 +76,45 @@
                     <button type="submit" class="btn btn-primary">Book Table</button>
                 </form>
                 <div id="reservation-message" class="message"></div>
+            </div>
+        </section>
+
+        <!-- Feedback View -->
+        <section id="feedback-view" class="view">
+            <div class="reservation-form-container">
+                <h2>Share Your Feedback</h2>
+                <p style="text-align: center; color: #666; margin-bottom: 20px;">
+                    We value your opinion! Please share your experience with us.
+                </p>
+                <form id="feedback-form">
+                    <div class="form-group">
+                        <label for="feedbackName">Name *</label>
+                        <input type="text" id="feedbackName" name="customerName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="feedbackEmail">Email *</label>
+                        <input type="email" id="feedbackEmail" name="customerEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="rating">Rating *</label>
+                        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                            <select id="rating" name="rating" required style="flex: 1; min-width: 150px;">
+                                <option value="">Select rating</option>
+                                <option value="5">⭐⭐⭐⭐⭐ Excellent (5)</option>
+                                <option value="4">⭐⭐⭐⭐ Very Good (4)</option>
+                                <option value="3">⭐⭐⭐ Good (3)</option>
+                                <option value="2">⭐⭐ Fair (2)</option>
+                                <option value="1">⭐ Poor (1)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="feedbackComment">Your Feedback *</label>
+                        <textarea id="feedbackComment" name="comment" rows="5" required placeholder="Tell us about your experience..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit Feedback</button>
+                </form>
+                <div id="feedback-message" class="message"></div>
             </div>
         </section>
     </main>

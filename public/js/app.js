@@ -18,11 +18,15 @@ const modalBody = document.getElementById('modal-body');
 const closeModal = document.querySelector('.close');
 const reservationForm = document.getElementById('reservation-form');
 const reservationMessage = document.getElementById('reservation-message');
+const tableNumberSelect = document.getElementById('tableNumber');
+const feedbackForm = document.getElementById('feedback-form');
+const feedbackMessage = document.getElementById('feedback-message');
 /**
  * Initialize the customer application
  */
 async function initCustomerApp() {
-    await Promise.all([loadMenu(), loadAvailableTables()]);
+    await loadMenu();
+    await loadTables();
     setupCustomerEventListeners();
 }
 /**
@@ -96,45 +100,6 @@ function displayMenu(items) {
         });
     });
 }
-
-/**
- * Load available tables for reservation
- */
-async function loadAvailableTables() {
-    try {
-        const response = await fetch(`${CUSTOMER_API_BASE}/tables/available`);
-        const availableTables = await response.json();
-        populateTableSelect(availableTables);
-    } catch (error) {
-        console.error('Error loading tables:', error);
-        const tableSelect = document.getElementById('tableNumber');
-        if (tableSelect) {
-            tableSelect.innerHTML = '<option value="">Error loading tables</option>';
-        }
-    }
-}
-
-/**
- * Populate table select dropdown
- */
-function populateTableSelect(tables) {
-    const tableSelect = document.getElementById('tableNumber');
-    if (!tableSelect) return;
-
-    if (tables.length === 0) {
-        tableSelect.innerHTML = '<option value="">No tables available</option>';
-        return;
-    }
-
-    tableSelect.innerHTML = '<option value="">Select a table</option>';
-    tables.forEach(table => {
-        const option = document.createElement('option');
-        option.value = table.number;
-        option.textContent = `Table ${table.number} (${table.capacity} people)`;
-        tableSelect.appendChild(option);
-    });
-}
-
 /**
  * Filter menu by category
  */
@@ -232,6 +197,40 @@ function setupCustomerEventListeners() {
     if (reservationForm) {
         reservationForm.addEventListener('submit', handleReservationSubmit);
     }
+    // Feedback form
+    if (feedbackForm) {
+        feedbackForm.addEventListener('submit', handleFeedbackSubmit);
+    }
+}
+/**
+ * Load available tables from API
+ */
+async function loadTables() {
+    try {
+        const response = await fetch(`${CUSTOMER_API_BASE}/tables/available`);
+        if (!response.ok) {
+            throw new Error('Failed to load tables');
+        }
+        const availableTables = await response.json();
+        if (tableNumberSelect) {
+            tableNumberSelect.innerHTML = '<option value="">Select a table</option>';
+            availableTables.forEach((table) => {
+                const option = document.createElement('option');
+                option.value = table.number.toString();
+                option.textContent = `Table ${table.number} (Capacity: ${table.capacity})`;
+                tableNumberSelect.appendChild(option);
+            });
+            if (availableTables.length === 0) {
+                tableNumberSelect.innerHTML = '<option value="">No tables available</option>';
+            }
+        }
+    }
+    catch (error) {
+        console.error('Error loading tables:', error);
+        if (tableNumberSelect) {
+            tableNumberSelect.innerHTML = '<option value="">Error loading tables</option>';
+        }
+    }
 }
 /**
  * Switch between views
@@ -255,6 +254,10 @@ function switchCustomerView(viewName) {
             view.classList.remove('active');
         }
     });
+    // Reload tables when switching to reservation view
+    if (viewName === 'reservation') {
+        loadTables();
+    }
 }
 /**
  * Handle reservation form submission
@@ -264,14 +267,39 @@ async function handleReservationSubmit(e) {
     if (!reservationForm)
         return;
     const formData = new FormData(reservationForm);
+    const startTime = formData.get('reservationTime');
+    const endTime = formData.get('endTime');
+    const reservationDate = formData.get('reservationDate');
+    const numberOfGuests = parseInt(formData.get('numberOfGuests'));
+    const tableNumber = parseInt(formData.get('tableNumber'));
+    // Validate reservation date is not in the past
+    if (reservationDate) {
+        const reservationDateTime = new Date(`${reservationDate}T${startTime}`);
+        const now = new Date();
+        if (reservationDateTime < now) {
+            showCustomerMessage(reservationMessage, 'Reservation date and time cannot be in the past', 'error');
+            return;
+        }
+    }
+    // Validate that end time is after start time
+    if (startTime && endTime && endTime <= startTime) {
+        showCustomerMessage(reservationMessage, 'End time must be after start time', 'error');
+        return;
+    }
+    // Validate number of guests (client-side validation will be completed with table capacity check on server)
+    if (numberOfGuests < 1) {
+        showCustomerMessage(reservationMessage, 'Number of guests must be at least 1', 'error');
+        return;
+    }
     const reservation = {
         customerName: formData.get('customerName'),
         customerEmail: formData.get('customerEmail'),
         customerPhone: formData.get('customerPhone'),
-        tableNumber: parseInt(formData.get('tableNumber')),
-        reservationDate: formData.get('reservationDate'),
-        reservationTime: formData.get('reservationTime'),
-        numberOfGuests: parseInt(formData.get('numberOfGuests'))
+        tableNumber: tableNumber,
+        reservationDate: reservationDate,
+        reservationTime: startTime,
+        endTime: endTime,
+        numberOfGuests: numberOfGuests
     };
     try {
         const response = await fetch(`${CUSTOMER_API_BASE}/reservations`, {
@@ -294,6 +322,47 @@ async function handleReservationSubmit(e) {
     catch (error) {
         console.error('Error creating reservation:', error);
         showCustomerMessage(reservationMessage, 'Error creating reservation. Please try again.', 'error');
+    }
+}
+/**
+ * Handle feedback form submission
+ */
+async function handleFeedbackSubmit(e) {
+    e.preventDefault();
+    if (!feedbackForm)
+        return;
+    const formData = new FormData(feedbackForm);
+    const feedback = {
+        customerName: formData.get('customerName'),
+        customerEmail: formData.get('customerEmail'),
+        rating: parseInt(formData.get('rating')),
+        comment: formData.get('comment')
+    };
+    // Validate rating
+    if (feedback.rating < 1 || feedback.rating > 5) {
+        showCustomerMessage(feedbackMessage, 'Please select a valid rating (1-5)', 'error');
+        return;
+    }
+    try {
+        const response = await fetch(`${CUSTOMER_API_BASE}/feedback`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(feedback)
+        });
+        if (response.ok) {
+            showCustomerMessage(feedbackMessage, 'Thank you for your feedback! We appreciate your input.', 'success');
+            feedbackForm.reset();
+        }
+        else {
+            const error = await response.json();
+            showCustomerMessage(feedbackMessage, error.error || 'Failed to submit feedback', 'error');
+        }
+    }
+    catch (error) {
+        console.error('Error submitting feedback:', error);
+        showCustomerMessage(feedbackMessage, 'Error submitting feedback. Please try again.', 'error');
     }
 }
 /**

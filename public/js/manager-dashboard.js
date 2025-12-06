@@ -10,6 +10,8 @@
     let managerTables = [];
     let managerReservations = [];
     let managerCurrentCategory = 'all'; // Changed from currentCategory
+    let managerFeedback = [];
+    let managerCurrentRatingFilter = 'all';
     // DOM Elements
     const logoutBtn = document.getElementById('logout-btn');
     const managerNavButtons = document.querySelectorAll('.nav-btn');
@@ -390,6 +392,9 @@
                 break;
             case 'reservations':
                 loadManagerReservations(); // Changed from loadReservations
+                break;
+            case 'feedback':
+                loadManagerFeedback();
                 break;
         }
     }
@@ -782,6 +787,110 @@
                 }
             }
         });
+        // Feedback refresh button
+        const refreshFeedbackBtn = document.getElementById('refresh-feedback-btn');
+        if (refreshFeedbackBtn) {
+            refreshFeedbackBtn.addEventListener('click', () => {
+                loadManagerFeedback();
+            });
+        }
+        // Feedback rating filters
+        const feedbackFilters = document.querySelectorAll('.feedback-filters .filter-btn');
+        feedbackFilters.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const rating = btn.getAttribute('data-rating');
+                if (rating) {
+                    feedbackFilters.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    managerCurrentRatingFilter = rating;
+                    displayManagerFeedback();
+                }
+            });
+        });
+    }
+    /**
+     * Load feedback from API
+     */
+    async function loadManagerFeedback() {
+        try {
+            const response = await fetch(`${MANAGER_API_BASE}/feedback`);
+            if (response.ok) {
+                managerFeedback = await response.json();
+                displayManagerFeedback();
+                updateFeedbackStats();
+            }
+            else {
+                console.error('Failed to load feedback');
+            }
+        }
+        catch (error) {
+            console.error('Error loading feedback:', error);
+        }
+    }
+    /**
+     * Display feedback items
+     */
+    function displayManagerFeedback() {
+        const feedbackList = document.getElementById('feedback-list');
+        const feedbackEmpty = document.getElementById('feedback-empty');
+        if (!feedbackList || !feedbackEmpty)
+            return;
+        const filteredFeedback = managerCurrentRatingFilter === 'all'
+            ? managerFeedback
+            : managerFeedback.filter(f => f.rating === parseInt(managerCurrentRatingFilter));
+        if (filteredFeedback.length === 0) {
+            feedbackList.style.display = 'none';
+            feedbackEmpty.style.display = 'block';
+            return;
+        }
+        feedbackList.style.display = 'grid';
+        feedbackEmpty.style.display = 'none';
+        feedbackList.innerHTML = filteredFeedback
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            .map(feedback => {
+            const stars = '⭐'.repeat(feedback.rating) + '☆'.repeat(5 - feedback.rating);
+            const date = new Date(feedback.createdAt).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            return `
+          <div style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+              <div>
+                <h3 style="margin: 0 0 0.5rem 0; color: #333;">${feedback.customerName}</h3>
+                <p style="margin: 0; color: #666; font-size: 0.9rem;">${feedback.customerEmail}</p>
+              </div>
+              <div style="text-align: right;">
+                <div style="font-size: 1.2rem; margin-bottom: 0.25rem;">${stars}</div>
+                <div style="color: #999; font-size: 0.85rem;">${date}</div>
+              </div>
+            </div>
+            ${feedback.comment ? `<p style="margin: 0; color: #555; line-height: 1.6;">${feedback.comment}</p>` : '<p style="margin: 0; color: #999; font-style: italic;">No comment provided</p>'}
+          </div>
+        `;
+        })
+            .join('');
+    }
+    /**
+     * Update feedback statistics
+     */
+    function updateFeedbackStats() {
+        const totalCount = document.getElementById('total-feedback-count');
+        const avgRating = document.getElementById('avg-rating');
+        if (totalCount) {
+            totalCount.textContent = managerFeedback.length.toString();
+        }
+        if (avgRating && managerFeedback.length > 0) {
+            const sum = managerFeedback.reduce((acc, f) => acc + f.rating, 0);
+            const avg = (sum / managerFeedback.length).toFixed(1);
+            avgRating.textContent = avg;
+        }
+        else if (avgRating) {
+            avgRating.textContent = '0.0';
+        }
     }
     // Initialize when DOM is ready
     if (document.readyState === 'loading') {

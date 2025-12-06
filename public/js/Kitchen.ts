@@ -185,6 +185,18 @@ class KitchenDashboard {
                 }
             }
 
+            if (target.classList.contains('update-status-btn')) {
+                const orderId = target.getAttribute('data-order-id');
+                if (orderId) {
+                    const statusSelect = document.getElementById(`status-select-${orderId}`) as HTMLSelectElement;
+                    if (statusSelect) {
+                        const newStatus = statusSelect.value;
+                        this.updateOrderStatus(orderId, newStatus);
+                    }
+                }
+            }
+
+            // Keep old buttons for backward compatibility
             if (target.classList.contains('complete-order-btn')) {
                 const orderId = target.getAttribute('data-order-id');
                 if (orderId) {
@@ -424,16 +436,31 @@ class KitchenDashboard {
                             </button>
                         ` : ''}
                         
-                        ${order.status === 'preparing' && order.assignedChef === this.currentChef?.id ? `
-                            <button class="btn-kitchen btn-complete complete-order-btn" data-order-id="${order.id}">
-                                Mark Ready
-                            </button>
+                        ${order.status === 'preparing' ? `
+                            <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.5rem;">
+                                <label for="status-select-${order.id}" style="font-weight: bold; color: #333; font-size: 0.9rem;">Update Status:</label>
+                                <select id="status-select-${order.id}" class="status-select" data-order-id="${order.id}" style="padding: 0.5rem 1rem; border: 1px solid #ddd; border-radius: 5px; font-size: 0.9rem; background: white; cursor: pointer;">
+                                    <option value="preparing" selected>Preparing</option>
+                                    <option value="ready">Ready</option>
+                                    <option value="served">Served</option>
+                                </select>
+                                <button class="btn-kitchen btn-update update-status-btn" data-order-id="${order.id}" style="background: #667eea; color: white; padding: 0.5rem 1.5rem; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; white-space: nowrap;">
+                                    Update Status
+                                </button>
+                            </div>
                         ` : ''}
                         
                         ${order.status === 'ready' ? `
-                            <button class="btn-kitchen btn-ready ready-order-btn" data-order-id="${order.id}">
-                                ✅ Order Ready
-                            </button>
+                            <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.5rem;">
+                                <label for="status-select-${order.id}" style="font-weight: bold; color: #333; font-size: 0.9rem;">Update Status:</label>
+                                <select id="status-select-${order.id}" class="status-select" data-order-id="${order.id}" style="padding: 0.5rem 1rem; border: 1px solid #ddd; border-radius: 5px; font-size: 0.9rem; background: white; cursor: pointer;">
+                                    <option value="ready" selected>Ready</option>
+                                    <option value="served">Served</option>
+                                </select>
+                                <button class="btn-kitchen btn-update update-status-btn" data-order-id="${order.id}" style="background: #28a745; color: white; padding: 0.5rem 1.5rem; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; white-space: nowrap;">
+                                    Update Status
+                                </button>
+                            </div>
                         ` : ''}
                         
                         <button class="btn-kitchen btn-secondary view-details-btn" data-order-id="${order.id}">
@@ -591,6 +618,67 @@ class KitchenDashboard {
         } catch (error) {
             console.error('Error completing order:', error);
             this.showMessage('Error completing order', 'error');
+        }
+    }
+
+    private async updateOrderStatus(orderId: string, newStatus: string): Promise<void> {
+        const order = this.orders.find(o => o.id === orderId);
+        if (!order) {
+            this.showMessage('Order not found', 'error');
+            return;
+        }
+
+        // Validate status transition
+        const validTransitions: { [key: string]: string[] } = {
+            'preparing': ['ready', 'served'],
+            'ready': ['served'],
+            'served': []
+        };
+
+        if (validTransitions[order.status] && !validTransitions[order.status].includes(newStatus)) {
+            this.showMessage(`Cannot change status from ${order.status} to ${newStatus}`, 'error');
+            return;
+        }
+
+        // Confirm status change
+        const statusMessages: { [key: string]: string } = {
+            'ready': 'Mark this order as ready for pickup?',
+            'served': 'Mark this order as served (collected by waiter)?'
+        };
+
+        const confirmMessage = statusMessages[newStatus] || `Change order status to ${newStatus}?`;
+        if (!confirm(confirmMessage)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${KITCHEN_API_BASE}/orders/${orderId}/status`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    status: newStatus,
+                    chefId: this.currentChef?.id
+                })
+            });
+
+            if (response.ok) {
+                const statusLabels: { [key: string]: string } = {
+                    'ready': 'ready for pickup',
+                    'served': 'served'
+                };
+                const label = statusLabels[newStatus] || newStatus;
+                this.showMessage(`Order #${orderId} marked as ${label}!`, 'success');
+                await this.loadOrders();
+                this.notifyStatusChange(orderId, newStatus);
+            } else {
+                const error = await response.json();
+                this.showMessage(error.error || 'Failed to update order status', 'error');
+            }
+        } catch (error) {
+            console.error('Error updating order status:', error);
+            this.showMessage('Error updating order status', 'error');
         }
     }
 

@@ -1,302 +1,462 @@
 "use strict";
 /**
  * Backend server for Restaurant Management System
- * Handles API endpoints for menu, reservations, orders, and billing
+ * Handles API endpoints for menu, reservations, orders, billing, and feedback
+ * Uses MySQL database for persistent storage
  */
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+// Load environment variables from .env file
+require("dotenv/config");
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
-const sampleData_1 = require("./data/sampleData");
+const config_1 = require("./db/config");
+const init_1 = require("./db/init");
+const db = __importStar(require("./db/queries"));
 const app = (0, express_1.default)();
 const PORT = 3000;
 // Middleware
 app.use((0, cors_1.default)());
 app.use(express_1.default.json());
 app.use(express_1.default.static('public'));
-// In-memory data stores (in a real app, these would be databases)
-// NOTE: Data is stored in server memory and will be lost when the server restarts.
-// For production, this should be replaced with a database (MongoDB, PostgreSQL, etc.)
-let menuItems = [...sampleData_1.sampleMenuItems];
-let reservations = [...sampleData_1.sampleReservations];
-let orders = [...sampleData_1.sampleOrders];
-let tables = [...sampleData_1.sampleTables];
 // ==================== MENU ENDPOINTS ====================
 /**
  * GET /api/menu
  * Returns all menu items
  */
-app.get('/api/menu', (req, res) => {
-    res.json(menuItems);
+app.get('/api/menu', async (req, res) => {
+    try {
+        const menuItems = await db.getAllMenuItems();
+        res.json(menuItems);
+    }
+    catch (error) {
+        console.error('Error fetching menu items:', error);
+        res.status(500).json({ error: 'Failed to fetch menu items' });
+    }
 });
 /**
  * GET /api/menu/:id
  * Returns a specific menu item by ID
  */
-app.get('/api/menu/:id', (req, res) => {
-    const item = menuItems.find(m => m.id === req.params.id);
-    if (!item) {
-        return res.status(404).json({ error: 'Menu item not found' });
+app.get('/api/menu/:id', async (req, res) => {
+    try {
+        const item = await db.getMenuItemById(req.params.id);
+        if (!item) {
+            return res.status(404).json({ error: 'Menu item not found' });
+        }
+        res.json(item);
     }
-    res.json(item);
+    catch (error) {
+        console.error('Error fetching menu item:', error);
+        res.status(500).json({ error: 'Failed to fetch menu item' });
+    }
 });
 /**
  * POST /api/menu
  * Create new menu item
  */
-app.post('/api/menu', (req, res) => {
-    const newItem = {
-        id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        name: req.body.name,
-        description: req.body.description,
-        price: parseFloat(req.body.price),
-        category: req.body.category,
-        imageUrl: req.body.imageUrl || '',
-        ingredients: req.body.ingredients || [],
-        allergens: req.body.allergens || [],
-        available: req.body.available !== undefined ? req.body.available : true
-    };
-    menuItems.push(newItem);
-    res.status(201).json(newItem);
+app.post('/api/menu', async (req, res) => {
+    try {
+        const newItem = {
+            id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            name: req.body.name,
+            description: req.body.description,
+            price: parseFloat(req.body.price),
+            category: req.body.category,
+            imageUrl: req.body.imageUrl || '',
+            ingredients: req.body.ingredients || [],
+            allergens: req.body.allergens || [],
+            available: req.body.available !== undefined ? req.body.available : true
+        };
+        const created = await db.createMenuItem(newItem);
+        res.status(201).json(created);
+    }
+    catch (error) {
+        console.error('Error creating menu item:', error);
+        res.status(500).json({ error: 'Failed to create menu item' });
+    }
 });
 /**
  * PUT /api/menu/:id
  * Update menu item
  */
-app.put('/api/menu/:id', (req, res) => {
-    const index = menuItems.findIndex(m => m.id === req.params.id);
-    if (index === -1) {
-        return res.status(404).json({ error: 'Menu item not found' });
+app.put('/api/menu/:id', async (req, res) => {
+    try {
+        const updated = await db.updateMenuItem(req.params.id, req.body);
+        if (!updated) {
+            return res.status(404).json({ error: 'Menu item not found' });
+        }
+        res.json(updated);
     }
-    menuItems[index] = {
-        ...menuItems[index],
-        name: req.body.name,
-        description: req.body.description,
-        price: parseFloat(req.body.price),
-        category: req.body.category,
-        imageUrl: req.body.imageUrl || menuItems[index].imageUrl,
-        ingredients: req.body.ingredients || menuItems[index].ingredients,
-        allergens: req.body.allergens || menuItems[index].allergens,
-        available: req.body.available !== undefined ? req.body.available : menuItems[index].available
-    };
-    res.json(menuItems[index]);
+    catch (error) {
+        console.error('Error updating menu item:', error);
+        res.status(500).json({ error: 'Failed to update menu item' });
+    }
 });
 /**
  * DELETE /api/menu/:id
  * Delete a menu item
  */
-app.delete('/api/menu/:id', (req, res) => {
-    const index = menuItems.findIndex(m => m.id === req.params.id);
-    if (index === -1) {
-        return res.status(404).json({ error: 'Menu item not found' });
+app.delete('/api/menu/:id', async (req, res) => {
+    try {
+        const deleted = await db.deleteMenuItem(req.params.id);
+        if (!deleted) {
+            return res.status(404).json({ error: 'Menu item not found' });
+        }
+        res.json({ success: true });
     }
-    menuItems.splice(index, 1);
-    res.json({ success: true });
+    catch (error) {
+        console.error('Error deleting menu item:', error);
+        res.status(500).json({ error: 'Failed to delete menu item' });
+    }
 });
 /**
  * POST /api/menu/:id/toggle-availability
  * Toggle menu item availability
  */
-app.post('/api/menu/:id/toggle-availability', (req, res) => {
-    const index = menuItems.findIndex(m => m.id === req.params.id);
-    if (index === -1) {
-        return res.status(404).json({ error: 'Menu item not found' });
+app.post('/api/menu/:id/toggle-availability', async (req, res) => {
+    try {
+        const updated = await db.updateMenuItem(req.params.id, { available: req.body.available });
+        if (!updated) {
+            return res.status(404).json({ error: 'Menu item not found' });
+        }
+        res.json(updated);
     }
-    menuItems[index].available = req.body.available;
-    res.json(menuItems[index]);
+    catch (error) {
+        console.error('Error toggling menu item availability:', error);
+        res.status(500).json({ error: 'Failed to update menu item availability' });
+    }
 });
 // ==================== TABLE ENDPOINTS ====================
 /**
  * GET /api/tables
  * Returns all tables
  */
-app.get('/api/tables', (req, res) => {
-    res.json(tables);
+app.get('/api/tables', async (req, res) => {
+    try {
+        const tables = await db.getAllTables();
+        res.json(tables);
+    }
+    catch (error) {
+        console.error('Error fetching tables:', error);
+        res.status(500).json({ error: 'Failed to fetch tables' });
+    }
 });
 /**
  * POST /api/tables
  * Create a new table
  */
-app.post('/api/tables', (req, res) => {
-    const newTable = {
-        id: `table_${Date.now()}`,
-        number: req.body.tableNumber,
-        capacity: req.body.capacity,
-        status: req.body.status || 'available',
-        location: req.body.location
-    };
-    tables.push(newTable);
-    res.status(201).json(newTable);
+app.post('/api/tables', async (req, res) => {
+    try {
+        const newTable = {
+            id: `table_${Date.now()}`,
+            number: req.body.tableNumber,
+            capacity: req.body.capacity,
+            status: req.body.status || 'available',
+            location: req.body.location
+        };
+        const created = await db.createTable(newTable);
+        res.status(201).json(created);
+    }
+    catch (error) {
+        console.error('Error creating table:', error);
+        res.status(500).json({ error: 'Failed to create table' });
+    }
 });
 /**
  * PUT /api/tables/:id
  * Update generic table info (Capacity/Location)
  */
-app.put('/api/tables/:id', (req, res) => {
-    const index = tables.findIndex(t => t.id === req.params.id);
-    if (index === -1) {
-        return res.status(404).json({ error: 'Table not found' });
+app.put('/api/tables/:id', async (req, res) => {
+    try {
+        const updates = {};
+        if (req.body.tableNumber !== undefined)
+            updates.number = req.body.tableNumber;
+        if (req.body.capacity !== undefined)
+            updates.capacity = req.body.capacity;
+        if (req.body.status !== undefined)
+            updates.status = req.body.status;
+        if (req.body.location !== undefined)
+            updates.location = req.body.location;
+        const updated = await db.updateTable(req.params.id, updates);
+        if (!updated) {
+            return res.status(404).json({ error: 'Table not found' });
+        }
+        res.json(updated);
     }
-    // Update only the fields that are provided
-    if (req.body.tableNumber !== undefined)
-        tables[index].number = req.body.tableNumber;
-    if (req.body.capacity !== undefined)
-        tables[index].capacity = req.body.capacity;
-    if (req.body.status !== undefined)
-        tables[index].status = req.body.status;
-    if (req.body.location !== undefined)
-        tables[index].location = req.body.location;
-    res.json(tables[index]);
+    catch (error) {
+        console.error('Error updating table:', error);
+        res.status(500).json({ error: 'Failed to update table' });
+    }
 });
 /**
  * DELETE /api/tables/:id
  * Delete a table
  */
-app.delete('/api/tables/:id', (req, res) => {
-    const index = tables.findIndex(t => t.id === req.params.id);
-    if (index === -1) {
-        return res.status(404).json({ error: 'Table not found' });
+app.delete('/api/tables/:id', async (req, res) => {
+    try {
+        const deleted = await db.deleteTable(req.params.id);
+        if (!deleted) {
+            return res.status(404).json({ error: 'Table not found' });
+        }
+        res.status(200).json({ success: true });
     }
-    tables.splice(index, 1);
-    res.status(200).json({ success: true });
+    catch (error) {
+        console.error('Error deleting table:', error);
+        res.status(500).json({ error: 'Failed to delete table' });
+    }
 });
 /**
  * GET /api/tables/available
  * Returns available tables for reservations
  */
-app.get('/api/tables/available', (req, res) => {
-    const availableTables = tables.filter(table => table.status === 'available');
-    res.json(availableTables);
+app.get('/api/tables/available', async (req, res) => {
+    try {
+        const availableTables = await db.getAvailableTables();
+        res.json(availableTables);
+    }
+    catch (error) {
+        console.error('Error fetching available tables:', error);
+        res.status(500).json({ error: 'Failed to fetch available tables' });
+    }
 });
 /**
  * PUT /api/tables/:id/status
  * Updates table status
  */
-app.put('/api/tables/:id/status', (req, res) => {
-    const table = tables.find(t => t.id === req.params.id);
-    if (!table) {
-        return res.status(404).json({ error: 'Table not found' });
+app.put('/api/tables/:id/status', async (req, res) => {
+    try {
+        const updates = {};
+        if (req.body.status)
+            updates.status = req.body.status;
+        if (req.body.assignedWaiter !== undefined)
+            updates.assignedWaiter = req.body.assignedWaiter;
+        const updated = await db.updateTable(req.params.id, updates);
+        if (!updated) {
+            return res.status(404).json({ error: 'Table not found' });
+        }
+        res.json(updated);
     }
-    const { status, assignedWaiter } = req.body;
-    if (status)
-        table.status = status;
-    if (assignedWaiter !== undefined)
-        table.assignedWaiter = assignedWaiter;
-    res.json(table);
+    catch (error) {
+        console.error('Error updating table status:', error);
+        res.status(500).json({ error: 'Failed to update table status' });
+    }
 });
 /**
  * POST /api/tables/:id/assign
  * Assigns table to waiter
  */
-app.post('/api/tables/:id/assign', (req, res) => {
-    const table = tables.find(t => t.id === req.params.id);
-    if (!table) {
-        return res.status(404).json({ error: 'Table not found' });
+app.post('/api/tables/:id/assign', async (req, res) => {
+    try {
+        const { waiterId } = req.body;
+        const updated = await db.updateTable(req.params.id, {
+            assignedWaiter: waiterId,
+            status: 'occupied'
+        });
+        if (!updated) {
+            return res.status(404).json({ error: 'Table not found' });
+        }
+        res.json(updated);
     }
-    const { waiterId } = req.body;
-    table.assignedWaiter = waiterId;
-    table.status = 'occupied';
-    res.json(table);
+    catch (error) {
+        console.error('Error assigning table:', error);
+        res.status(500).json({ error: 'Failed to assign table' });
+    }
 });
 /**
  * POST /api/tables/:id/assist
  * Marks table as needing assistance
  */
-app.post('/api/tables/:id/assist', (req, res) => {
-    const table = tables.find(t => t.id === req.params.id);
-    if (!table) {
-        return res.status(404).json({ error: 'Table not found' });
+app.post('/api/tables/:id/assist', async (req, res) => {
+    try {
+        const updated = await db.updateTable(req.params.id, { status: 'need-assistance' });
+        if (!updated) {
+            return res.status(404).json({ error: 'Table not found' });
+        }
+        res.json(updated);
     }
-    table.status = 'need-assistance';
-    res.json(table);
+    catch (error) {
+        console.error('Error updating table assistance:', error);
+        res.status(500).json({ error: 'Failed to update table status' });
+    }
 });
 // ==================== RESERVATION ENDPOINTS ====================
 /**
  * GET /api/reservations
  * Returns all reservations
  */
-app.get('/api/reservations', (req, res) => {
-    res.json(reservations);
+app.get('/api/reservations', async (req, res) => {
+    try {
+        const reservations = await db.getAllReservations();
+        res.json(reservations);
+    }
+    catch (error) {
+        console.error('Error fetching reservations:', error);
+        res.status(500).json({ error: 'Failed to fetch reservations' });
+    }
 });
 /**
  * POST /api/reservations
  * Creates a new reservation
  */
-app.post('/api/reservations', (req, res) => {
-    const { tableNumber, reservationDate, reservationTime } = req.body;
-    // Check if table is available
-    const table = tables.find(t => t.number === tableNumber);
-    const reservation = {
-        id: `res_${Date.now()}`,
-        customerName: req.body.customerName,
-        customerEmail: req.body.customerEmail,
-        customerPhone: req.body.customerPhone,
-        tableNumber: tableNumber,
-        reservationDate: reservationDate,
-        reservationTime: reservationTime,
-        numberOfGuests: req.body.numberOfGuests,
-        status: 'pending' // Default to pending so manager can confirm
-    };
-    reservations.push(reservation);
-    res.status(201).json(reservation);
+app.post('/api/reservations', async (req, res) => {
+    try {
+        const { tableNumber, reservationDate, reservationTime, endTime, numberOfGuests } = req.body;
+        // Validate required fields
+        if (!tableNumber || !reservationDate || !reservationTime || !endTime || !numberOfGuests) {
+            return res.status(400).json({ error: 'Missing required fields: tableNumber, reservationDate, reservationTime, endTime, and numberOfGuests are required' });
+        }
+        // Validate reservation date is not in the past
+        const reservationDateTime = new Date(`${reservationDate}T${reservationTime}`);
+        const now = new Date();
+        if (reservationDateTime < now) {
+            return res.status(400).json({ error: 'Reservation date and time cannot be in the past' });
+        }
+        // Validate time range
+        if (endTime <= reservationTime) {
+            return res.status(400).json({ error: 'End time must be after start time' });
+        }
+        // Check if table exists
+        const table = await db.getTableByNumber(tableNumber);
+        if (!table) {
+            return res.status(400).json({ error: 'Table not found' });
+        }
+        // Validate number of guests is within table capacity
+        if (numberOfGuests < 1) {
+            return res.status(400).json({ error: 'Number of guests must be at least 1' });
+        }
+        if (numberOfGuests > table.capacity) {
+            return res.status(400).json({ error: `Number of guests (${numberOfGuests}) exceeds table capacity (${table.capacity})` });
+        }
+        // Check for time conflicts
+        const conflictingReservations = await db.getConflictingReservations(tableNumber, reservationDate, reservationTime, endTime);
+        if (conflictingReservations.length > 0) {
+            return res.status(409).json({
+                error: `Table ${tableNumber} is already reserved for this time slot. Please choose a different time or table.`
+            });
+        }
+        const reservation = {
+            id: `res_${Date.now()}`,
+            customerName: req.body.customerName,
+            customerEmail: req.body.customerEmail,
+            customerPhone: req.body.customerPhone,
+            tableNumber: tableNumber,
+            reservationDate: reservationDate,
+            reservationTime: reservationTime,
+            endTime: endTime,
+            numberOfGuests: req.body.numberOfGuests,
+            status: 'pending'
+        };
+        const created = await db.createReservation(reservation);
+        res.status(201).json(created);
+    }
+    catch (error) {
+        console.error('Error creating reservation:', error);
+        if (error.code === 'ER_DUP_ENTRY') {
+            return res.status(409).json({ error: 'Reservation conflict detected' });
+        }
+        res.status(500).json({ error: 'Failed to create reservation' });
+    }
 });
 /**
  * POST /api/reservations/:id/confirm
  * Manager confirms reservation
  */
-app.post('/api/reservations/:id/confirm', (req, res) => {
-    const reservation = reservations.find(r => r.id === req.params.id);
-    if (!reservation) {
-        return res.status(404).json({ error: 'Reservation not found' });
+app.post('/api/reservations/:id/confirm', async (req, res) => {
+    try {
+        const reservation = await db.updateReservationStatus(req.params.id, 'confirmed');
+        if (!reservation) {
+            return res.status(404).json({ error: 'Reservation not found' });
+        }
+        res.json(reservation);
     }
-    reservation.status = 'confirmed';
-    // Also update table status
-    const table = tables.find(t => t.number === reservation.tableNumber);
-    if (table)
-        table.status = 'reserved';
-    res.json(reservation);
+    catch (error) {
+        console.error('Error confirming reservation:', error);
+        res.status(500).json({ error: 'Failed to confirm reservation' });
+    }
 });
 /**
  * POST /api/reservations/:id/cancel
  * Manager cancels reservation
  */
-app.post('/api/reservations/:id/cancel', (req, res) => {
-    const reservation = reservations.find(r => r.id === req.params.id);
-    if (!reservation) {
-        return res.status(404).json({ error: 'Reservation not found' });
+app.post('/api/reservations/:id/cancel', async (req, res) => {
+    try {
+        const reservation = await db.updateReservationStatus(req.params.id, 'cancelled');
+        if (!reservation) {
+            return res.status(404).json({ error: 'Reservation not found' });
+        }
+        res.json(reservation);
     }
-    reservation.status = 'cancelled';
-    // Free up table if needed
-    const table = tables.find(t => t.number === reservation.tableNumber);
-    if (table && table.status === 'reserved')
-        table.status = 'available';
-    res.json(reservation);
+    catch (error) {
+        console.error('Error cancelling reservation:', error);
+        res.status(500).json({ error: 'Failed to cancel reservation' });
+    }
 });
 /**
  * GET /api/reservations/:id
  * Returns a specific reservation by ID
  */
-app.get('/api/reservations/:id', (req, res) => {
-    const reservation = reservations.find(r => r.id === req.params.id);
-    if (!reservation) {
-        return res.status(404).json({ error: 'Reservation not found' });
+app.get('/api/reservations/:id', async (req, res) => {
+    try {
+        const reservation = await db.getReservationById(req.params.id);
+        if (!reservation) {
+            return res.status(404).json({ error: 'Reservation not found' });
+        }
+        res.json(reservation);
     }
-    res.json(reservation);
+    catch (error) {
+        console.error('Error fetching reservation:', error);
+        res.status(500).json({ error: 'Failed to fetch reservation' });
+    }
 });
 // ==================== ORDER ENDPOINTS ====================
 /**
  * GET /api/orders
  * Returns all orders (with optional status filter)
  */
-app.get('/api/orders', (req, res) => {
-    const statusFilter = req.query.status;
-    if (statusFilter) {
-        const statuses = statusFilter.split(',');
-        const filteredOrders = orders.filter(order => statuses.includes(order.status));
+app.get('/api/orders', async (req, res) => {
+    try {
+        const statusFilter = req.query.status;
+        const statuses = statusFilter ? statusFilter.split(',') : undefined;
+        let orders = await db.getAllOrders(statuses);
         // Add item names to orders
-        const ordersWithNames = filteredOrders.map(order => ({
+        const menuItems = await db.getAllMenuItems();
+        const ordersWithNames = orders.map(order => ({
             ...order,
             items: order.items.map(item => {
                 const menuItem = menuItems.find(m => m.id === item.menuItemId);
@@ -306,287 +466,458 @@ app.get('/api/orders', (req, res) => {
                 };
             })
         }));
-        return res.json(ordersWithNames);
+        res.json(ordersWithNames);
     }
-    // Return all orders with item names
-    const ordersWithNames = orders.map(order => ({
-        ...order,
-        items: order.items.map(item => {
-            const menuItem = menuItems.find(m => m.id === item.menuItemId);
-            return {
-                ...item,
-                name: menuItem ? menuItem.name : 'Unknown Item'
-            };
-        })
-    }));
-    res.json(ordersWithNames);
+    catch (error) {
+        console.error('Error fetching orders:', error);
+        res.status(500).json({ error: 'Failed to fetch orders' });
+    }
 });
 /**
  * POST /api/orders
  * Creates a new order
  */
-app.post('/api/orders', (req, res) => {
-    const { tableNumber, items, assignedWaiter, customerName } = req.body;
-    // Check if table exists
-    const table = tables.find(t => t.number === tableNumber);
-    if (!table) {
-        return res.status(400).json({ error: 'Table not found' });
+app.post('/api/orders', async (req, res) => {
+    try {
+        const { tableNumber, items, assignedWaiter, customerName } = req.body;
+        // Check if table exists
+        const table = await db.getTableByNumber(tableNumber);
+        if (!table) {
+            return res.status(400).json({ error: 'Table not found' });
+        }
+        if (!items || items.length === 0) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+        // Validate assignedWaiter exists in staff table if provided
+        let validWaiterId = undefined;
+        if (assignedWaiter) {
+            const waiter = await db.getStaffById(assignedWaiter);
+            if (!waiter) {
+                console.warn(`Warning: assignedWaiter '${assignedWaiter}' not found in staff table. Setting to null.`);
+                // Don't fail - just set to null
+                validWaiterId = undefined;
+            }
+            else {
+                validWaiterId = assignedWaiter;
+            }
+        }
+        const order = {
+            id: `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            tableNumber: tableNumber,
+            items: items,
+            status: 'pending',
+            createdAt: new Date().toISOString(),
+            assignedWaiter: validWaiterId,
+            customerName: customerName
+        };
+        const created = await db.createOrder(order);
+        // Update table status
+        await db.updateTable(table.id, {
+            status: 'occupied',
+            assignedWaiter: validWaiterId,
+            currentOrder: order.id
+        });
+        res.status(201).json(created);
     }
-    const order = {
-        id: `order_${Date.now()}`,
-        tableNumber: tableNumber,
-        items: items,
-        status: 'pending',
-        createdAt: new Date().toISOString(),
-        assignedWaiter: assignedWaiter,
-        customerName: customerName
-    };
-    if (!order.tableNumber || !order.items || order.items.length === 0) {
-        return res.status(400).json({ error: 'Missing required fields' });
+    catch (error) {
+        console.error('Error creating order:', error);
+        res.status(500).json({ error: 'Failed to create order' });
     }
-    // Update table status
-    table.status = 'occupied';
-    table.assignedWaiter = assignedWaiter;
-    table.currentOrder = order.id;
-    orders.push(order);
-    res.status(201).json(order);
 });
 /**
  * GET /api/orders/:id
  * Returns a specific order by ID
  */
-app.get('/api/orders/:id', (req, res) => {
-    const order = orders.find(o => o.id === req.params.id);
-    if (!order) {
-        return res.status(404).json({ error: 'Order not found' });
+app.get('/api/orders/:id', async (req, res) => {
+    try {
+        const order = await db.getOrderById(req.params.id);
+        if (!order) {
+            return res.status(404).json({ error: 'Order not found' });
+        }
+        // Add item names
+        const menuItems = await db.getAllMenuItems();
+        const orderWithNames = {
+            ...order,
+            items: order.items.map(item => {
+                const menuItem = menuItems.find(m => m.id === item.menuItemId);
+                return {
+                    ...item,
+                    name: menuItem ? menuItem.name : 'Unknown Item'
+                };
+            })
+        };
+        res.json(orderWithNames);
     }
-    res.json(order);
+    catch (error) {
+        console.error('Error fetching order:', error);
+        res.status(500).json({ error: 'Failed to fetch order' });
+    }
 });
 /**
  * PUT /api/orders/:id/status
  * Updates order status (unified endpoint for all status changes)
  */
-app.put('/api/orders/:id/status', (req, res) => {
-    const order = orders.find(o => o.id === req.params.id);
-    if (!order) {
-        return res.status(404).json({ error: 'Order not found' });
-    }
-    const { status, assignedChef, chefName, estimatedPrepTime, startTime, waiterId } = req.body;
-    // Update status
-    if (status)
-        order.status = status;
-    // Kitchen-specific fields
-    if (assignedChef)
-        order.assignedChef = assignedChef;
-    if (chefName)
-        order.chefName = chefName;
-    if (estimatedPrepTime)
-        order.estimatedPrepTime = estimatedPrepTime;
-    if (startTime)
-        order.startTime = startTime;
-    // Update timestamp
-    order.updatedAt = new Date().toISOString();
-    // If order is paid, mark table as available
-    if (status === 'paid') {
-        const table = tables.find(t => t.number === order.tableNumber);
-        if (table) {
-            table.status = 'available';
-            table.assignedWaiter = undefined;
-            table.currentOrder = undefined;
+app.put('/api/orders/:id/status', async (req, res) => {
+    try {
+        const { status, assignedChef, chefName, estimatedPrepTime, startTime } = req.body;
+        const updates = {};
+        if (assignedChef)
+            updates.assignedChef = assignedChef;
+        if (chefName)
+            updates.chefName = chefName;
+        if (estimatedPrepTime)
+            updates.estimatedPrepTime = estimatedPrepTime;
+        if (startTime)
+            updates.startTime = startTime;
+        const updated = await db.updateOrderStatus(req.params.id, status, updates);
+        if (!updated) {
+            return res.status(404).json({ error: 'Order not found' });
         }
+        // If order is paid, mark table as available
+        if (status === 'paid') {
+            const table = await db.getTableByNumber(updated.tableNumber);
+            if (table) {
+                await db.updateTable(table.id, {
+                    status: 'available',
+                    assignedWaiter: undefined,
+                    currentOrder: undefined
+                });
+            }
+        }
+        res.json(updated);
     }
-    res.json(order);
+    catch (error) {
+        console.error('Error updating order status:', error);
+        res.status(500).json({ error: 'Failed to update order status' });
+    }
 });
 // ==================== BILLING ENDPOINTS ====================
 /**
  * POST /api/bills/generate
  * Generates a bill for an order
  */
-app.post('/api/bills/generate', (req, res) => {
-    const { orderId } = req.body;
-    const order = orders.find(o => o.id === orderId);
-    if (!order) {
-        return res.status(404).json({ error: 'Order not found' });
+app.post('/api/bills/generate', async (req, res) => {
+    try {
+        const { orderId } = req.body;
+        const order = await db.getOrderById(orderId);
+        if (!order) {
+            return res.status(404).json({ error: 'Order not found' });
+        }
+        // Calculate totals
+        const subtotal = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const tax = subtotal * 0.1; // 10% tax
+        const total = subtotal + tax;
+        const bill = {
+            id: `BILL_${orderId}`, // Fixed: Use BILL_ prefix to match frontend
+            orderId: order.id,
+            tableNumber: order.tableNumber,
+            items: order.items,
+            subtotal: Math.round(subtotal * 100) / 100,
+            tax: Math.round(tax * 100) / 100,
+            total: Math.round(total * 100) / 100,
+            paymentMethod: req.body.paymentMethod || 'cash',
+            paymentStatus: 'pending',
+            createdAt: new Date().toISOString()
+        };
+        const created = await db.createBill(bill);
+        res.status(201).json(created);
     }
-    // Calculate totals
-    const subtotal = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const tax = subtotal * 0.1; // 10% tax
-    const total = subtotal + tax;
-    const bill = {
-        id: `bill_${Date.now()}`,
-        orderId: order.id,
-        tableNumber: order.tableNumber,
-        items: order.items,
-        subtotal: Math.round(subtotal * 100) / 100,
-        tax: Math.round(tax * 100) / 100,
-        total: Math.round(total * 100) / 100,
-        paymentMethod: req.body.paymentMethod || 'cash',
-        paymentStatus: 'pending',
-        createdAt: new Date().toISOString()
-    };
-    res.status(201).json(bill);
+    catch (error) {
+        console.error('Error generating bill:', error);
+        res.status(500).json({ error: 'Failed to generate bill' });
+    }
 });
 /**
  * POST /api/bills/:id/pay
  * Processes payment for a bill and updates table status
+ * This endpoint:
+ * 1. Updates order status to 'paid'
+ * 2. Marks the table as 'available'
+ * 3. Removes waiter assignment from table
  */
-app.post('/api/bills/:id/pay', (req, res) => {
-    const { paymentMethod } = req.body;
-    // Update order status to paid
-    const billId = req.params.id;
-    const orderId = billId.replace('bill_', 'order_');
-    const order = orders.find(o => o.id === orderId);
-    if (order) {
-        order.status = 'paid';
-        // Mark table as available
-        const table = tables.find(t => t.number === order.tableNumber);
-        if (table) {
-            table.status = 'available';
-            table.assignedWaiter = undefined;
-            table.currentOrder = undefined;
+app.post('/api/bills/:id/pay', async (req, res) => {
+    try {
+        const { paymentMethod } = req.body;
+        const billId = req.params.id;
+        // Extract order ID from bill ID (BILL_order_xxx or bill_order_xxx)
+        let orderId = billId.replace(/^BILL_/, '').replace(/^bill_/, '');
+        // If bill ID doesn't start with BILL_ or bill_, try to get bill from DB
+        if (!billId.startsWith('BILL_') && !billId.startsWith('bill_')) {
+            const bill = await db.getBillById(billId);
+            if (bill) {
+                orderId = bill.orderId;
+            }
+            else {
+                return res.status(404).json({ error: 'Bill not found' });
+            }
         }
+        // Get order
+        const order = await db.getOrderById(orderId);
+        if (!order) {
+            return res.status(404).json({ error: 'Order not found' });
+        }
+        // Update bill payment status
+        await db.updateBillPayment(billId, paymentMethod);
+        // Update order status to paid
+        await db.updateOrderStatus(orderId, 'paid');
+        // Mark table as available and remove waiter assignment
+        const table = await db.getTableByNumber(order.tableNumber);
+        if (table) {
+            await db.updateTable(table.id, {
+                status: 'available',
+                assignedWaiter: undefined,
+                currentOrder: undefined
+            });
+        }
+        res.json({
+            success: true,
+            message: 'Payment processed successfully',
+            billId: billId,
+            paymentMethod: paymentMethod
+        });
     }
-    res.json({
-        success: true,
-        message: 'Payment processed successfully',
-        billId: req.params.id,
-        paymentMethod: paymentMethod
-    });
+    catch (error) {
+        console.error('Error processing payment:', error);
+        res.status(500).json({ error: 'Failed to process payment' });
+    }
+});
+// ==================== FEEDBACK ENDPOINTS ====================
+/**
+ * GET /api/feedback
+ * Returns all feedback
+ */
+app.get('/api/feedback', async (req, res) => {
+    try {
+        const feedback = await db.getAllFeedback();
+        res.json(feedback);
+    }
+    catch (error) {
+        console.error('Error fetching feedback:', error);
+        res.status(500).json({ error: 'Failed to fetch feedback' });
+    }
+});
+/**
+ * POST /api/feedback
+ * Creates a new feedback entry
+ */
+app.post('/api/feedback', async (req, res) => {
+    try {
+        const { customerName, customerEmail, rating, comment } = req.body;
+        // Validate required fields
+        if (!customerName || !customerEmail || !rating || !comment) {
+            return res.status(400).json({ error: 'Missing required fields: customerName, customerEmail, rating, and comment are required' });
+        }
+        // Validate rating range
+        if (rating < 1 || rating > 5) {
+            return res.status(400).json({ error: 'Rating must be between 1 and 5' });
+        }
+        const feedback = {
+            id: `feedback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            customerName,
+            customerEmail,
+            rating: parseInt(rating),
+            comment,
+            createdAt: new Date().toISOString(),
+            status: 'pending'
+        };
+        const created = await db.createFeedback(feedback);
+        res.status(201).json(created);
+    }
+    catch (error) {
+        console.error('Error creating feedback:', error);
+        res.status(500).json({ error: 'Failed to create feedback' });
+    }
 });
 // ==================== WAITER STATS ENDPOINTS ====================
 /**
  * GET /api/waiters/:id/stats
  * Returns waiter statistics
  */
-app.get('/api/waiters/:id/stats', (req, res) => {
-    const waiterId = req.params.id;
-    const waiterOrders = orders.filter(order => order.assignedWaiter === waiterId);
-    const activeTables = tables.filter(table => table.assignedWaiter === waiterId && table.status === 'occupied');
-    const pendingOrders = waiterOrders.filter(order => order.status === 'pending' || order.status === 'preparing');
-    const today = new Date().toISOString().split('T')[0];
-    const todayOrders = waiterOrders.filter(order => order.createdAt.startsWith(today));
-    const todayRevenue = todayOrders.reduce((sum, order) => {
-        return sum + order.items.reduce((orderSum, item) => orderSum + (item.price * item.quantity), 0);
-    }, 0);
-    const stats = {
-        activeTables: activeTables.length,
-        pendingOrders: pendingOrders.length,
-        todayRevenue: Math.round(todayRevenue * 100) / 100,
-        avgServiceTime: 25, // Mock data
-        totalTablesServed: waiterOrders.filter(order => order.status === 'paid').length,
-        totalRevenue: Math.round(todayRevenue * 1.5 * 100) / 100, // Mock data
-        customerRating: 4.7, // Mock data
-        orderAccuracy: 98 // Mock data
-    };
-    res.json(stats);
+app.get('/api/waiters/:id/stats', async (req, res) => {
+    try {
+        const waiterId = req.params.id;
+        const allOrders = await db.getAllOrders();
+        const waiterOrders = allOrders.filter(order => order.assignedWaiter === waiterId);
+        const allTables = await db.getAllTables();
+        const activeTables = allTables.filter(table => table.assignedWaiter === waiterId && table.status === 'occupied');
+        const pendingOrders = waiterOrders.filter(order => order.status === 'pending' || order.status === 'preparing');
+        const today = new Date().toISOString().split('T')[0];
+        const todayOrders = waiterOrders.filter(order => order.createdAt.startsWith(today));
+        const todayRevenue = todayOrders.reduce((sum, order) => {
+            return sum + order.items.reduce((orderSum, item) => orderSum + (item.price * item.quantity), 0);
+        }, 0);
+        const stats = {
+            activeTables: activeTables.length,
+            pendingOrders: pendingOrders.length,
+            todayRevenue: Math.round(todayRevenue * 100) / 100,
+            avgServiceTime: 25, // Mock data
+            totalTablesServed: waiterOrders.filter(order => order.status === 'paid').length,
+            totalRevenue: Math.round(todayRevenue * 1.5 * 100) / 100, // Mock data
+            customerRating: 4.7, // Mock data
+            orderAccuracy: 98 // Mock data
+        };
+        res.json(stats);
+    }
+    catch (error) {
+        console.error('Error fetching waiter stats:', error);
+        res.status(500).json({ error: 'Failed to fetch waiter statistics' });
+    }
 });
 // ==================== AUTHENTICATION ENDPOINTS ====================
-/**
- * Simple user credentials (in production, use a database)
- */
-const users = {
-    waiter: { username: 'waiter', password: 'waiter123', role: 'waiter', name: 'Ahmed Waiter' },
-    manager: { username: 'manager', password: 'manager123', role: 'manager', name: 'Manager' },
-    kitchen: { username: 'chef1', password: 'chef123', role: 'chef', name: 'Chef' }
-};
 /**
  * POST /api/auth/login
  * Authenticates staff members (waiter, manager, or kitchen)
  */
-app.post('/api/auth/login', (req, res) => {
-    const { username, password, role } = req.body;
-    if (!username || !password || !role) {
-        return res.status(400).json({ error: 'Missing required fields' });
+app.post('/api/auth/login', async (req, res) => {
+    try {
+        const { username, password, role } = req.body;
+        if (!username || !password || !role) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+        // Get user from database
+        const user = await db.getStaffByUsername(username);
+        if (!user || user.password !== password || user.role !== role) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+        // Generate simple token (in production, use JWT or similar)
+        const token = `token_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        res.json({
+            success: true,
+            username: user.username,
+            role: user.role,
+            name: user.name,
+            id: user.id,
+            token: token
+        });
     }
-    // Check if user exists
-    const user = users[username];
-    if (!user || user.password !== password || user.role !== role) {
-        return res.status(401).json({ error: 'Invalid credentials' });
+    catch (error) {
+        console.error('Error during login:', error);
+        res.status(500).json({ error: 'Failed to authenticate' });
     }
-    // Generate simple token (in production, use JWT or similar)
-    const token = `token_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    res.json({
-        success: true,
-        username: user.username,
-        role: user.role,
-        name: user.name,
-        id: username,
-        token: token
-    });
 });
 // ==================== KITCHEN ORDER ENDPOINTS ====================
 /**
  * GET /api/kitchen/orders
  * Returns orders in a shape friendly for the kitchen dashboard
  */
-app.get('/api/kitchen/orders', (req, res) => {
-    const kitchenOrders = orders.map(order => ({
-        ...order,
-        items: order.items.map(item => {
-            const menuItem = menuItems.find(m => m.id === item.menuItemId);
-            return {
-                ...item,
-                name: menuItem ? menuItem.name : 'Unknown Item'
-            };
-        })
-    }));
-    res.json(kitchenOrders);
+app.get('/api/kitchen/orders', async (req, res) => {
+    try {
+        let orders = await db.getAllOrders();
+        const menuItems = await db.getAllMenuItems();
+        const kitchenOrders = orders.map(order => ({
+            ...order,
+            items: order.items.map(item => {
+                const menuItem = menuItems.find(m => m.id === item.menuItemId);
+                return {
+                    ...item,
+                    name: menuItem ? menuItem.name : 'Unknown Item'
+                };
+            })
+        }));
+        res.json(kitchenOrders);
+    }
+    catch (error) {
+        console.error('Error fetching kitchen orders:', error);
+        res.status(500).json({ error: 'Failed to fetch kitchen orders' });
+    }
 });
 /**
  * POST /api/kitchen/orders/:id/accept
  * Chef accepts an order and sets estimated prep time
  */
-app.post('/api/kitchen/orders/:id/accept', (req, res) => {
-    const order = orders.find(o => o.id === req.params.id);
-    if (!order) {
-        return res.status(404).json({ error: 'Order not found' });
+app.post('/api/kitchen/orders/:id/accept', async (req, res) => {
+    try {
+        const { chefId, chefName, estimatedPrepTime } = req.body;
+        if (!estimatedPrepTime || estimatedPrepTime <= 0) {
+            return res.status(400).json({ error: 'Invalid estimated preparation time' });
+        }
+        const updated = await db.updateOrderStatus(req.params.id, 'preparing', {
+            assignedChef: chefId,
+            chefName: chefName,
+            estimatedPrepTime: estimatedPrepTime,
+            startTime: new Date().toISOString()
+        });
+        if (!updated) {
+            return res.status(404).json({ error: 'Order not found' });
+        }
+        res.json(updated);
     }
-    const { chefId, chefName, estimatedPrepTime } = req.body;
-    if (!estimatedPrepTime || estimatedPrepTime <= 0) {
-        return res.status(400).json({ error: 'Invalid estimated preparation time' });
+    catch (error) {
+        console.error('Error accepting order:', error);
+        res.status(500).json({ error: 'Failed to accept order' });
     }
-    order.status = 'preparing';
-    order.assignedChef = chefId;
-    order.chefName = chefName;
-    order.estimatedPrepTime = estimatedPrepTime;
-    order.startTime = new Date().toISOString();
-    order.updatedAt = new Date().toISOString();
-    return res.json(order);
 });
 /**
  * POST /api/kitchen/orders/:id/complete
  * Chef finishes cooking – order becomes READY for the waiter
  */
-app.post('/api/kitchen/orders/:id/complete', (req, res) => {
-    const order = orders.find(o => o.id === req.params.id);
-    if (!order) {
-        return res.status(404).json({ error: 'Order not found' });
+app.post('/api/kitchen/orders/:id/complete', async (req, res) => {
+    try {
+        const updated = await db.updateOrderStatus(req.params.id, 'ready');
+        if (!updated) {
+            return res.status(404).json({ error: 'Order not found' });
+        }
+        res.json(updated);
     }
-    order.status = 'ready';
-    order.updatedAt = new Date().toISOString();
-    return res.json(order);
+    catch (error) {
+        console.error('Error completing order:', error);
+        res.status(500).json({ error: 'Failed to complete order' });
+    }
 });
 /**
  * POST /api/kitchen/orders/:id/served
  * Marks order as served to the customer (from kitchen point of view)
  */
-app.post('/api/kitchen/orders/:id/served', (req, res) => {
-    const order = orders.find(o => o.id === req.params.id);
-    if (!order) {
-        return res.status(404).json({ error: 'Order not found' });
+app.post('/api/kitchen/orders/:id/served', async (req, res) => {
+    try {
+        const updated = await db.updateOrderStatus(req.params.id, 'served');
+        if (!updated) {
+            return res.status(404).json({ error: 'Order not found' });
+        }
+        res.json(updated);
     }
-    order.status = 'served';
-    order.updatedAt = new Date().toISOString();
-    return res.json(order);
+    catch (error) {
+        console.error('Error marking order as served:', error);
+        res.status(500).json({ error: 'Failed to update order status' });
+    }
 });
-// Start server
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-    console.log(`API endpoints available at http://localhost:${PORT}/api`);
-    console.log(`Customer menu: http://localhost:${PORT}/index.html`);
-    console.log(`Staff login: http://localhost:${PORT}/login.html`);
-    console.log('\nTest credentials:');
-    console.log('  Waiter:  username: waiter,  password: waiter123');
-    console.log('  Manager: username: manager, password: manager123');
-    console.log('  Kitchen: username: chef1, password: chef123');
-});
+// Initialize database and start server
+async function startServer() {
+    try {
+        // First, create the database if it doesn't exist
+        const dbName = process.env.DB_NAME || 'restaurant_db';
+        try {
+            const { adminPool } = await Promise.resolve().then(() => __importStar(require('./db/config')));
+            await adminPool.execute(`CREATE DATABASE IF NOT EXISTS \`${dbName}\``);
+            console.log(`✓ Database '${dbName}' ready`);
+        }
+        catch (error) {
+            console.warn('⚠ Could not create database:', error.message);
+            // Continue - might already exist or will be created by schema
+        }
+        // Initialize database schema and seed data (this will create tables)
+        await (0, init_1.initializeDatabase)();
+        // Test database connection after initialization
+        const connected = await (0, config_1.testConnection)();
+        if (!connected) {
+            console.error('Failed to connect to database. Please check your MySQL configuration.');
+            process.exit(1);
+        }
+        // Start server
+        app.listen(PORT, () => {
+            console.log(`Server running on http://localhost:${PORT}`);
+            console.log(`API endpoints available at http://localhost:${PORT}/api`);
+            console.log(`Customer menu: http://localhost:${PORT}/index.html`);
+            console.log(`Staff login: http://localhost:${PORT}/login.html`);
+            console.log('\nTest credentials:');
+            console.log('  Waiter:  username: waiter,  password: waiter123');
+            console.log('  Manager: username: manager, password: manager123');
+            console.log('  Kitchen: username: chef1,   password: chef123');
+        });
+    }
+    catch (error) {
+        console.error('Failed to start server:', error);
+        process.exit(1);
+    }
+}
+startServer();

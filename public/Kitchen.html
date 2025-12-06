@@ -147,6 +147,15 @@
       color: white;
     }
 
+    .btn-update {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-update:hover {
+      background: #5568d3;
+    }
+
     .btn-accept:hover {
       background: #218838;
     }
@@ -331,7 +340,10 @@
 <main>
   <div class="kitchen-header">
     <h2>Welcome, <span id="chef-name">Chef</span>!</h2>
-    <button class="logout-btn" id="logout-btn">Logout</button>
+    <div style="display: flex; gap: 1rem; align-items: center;">
+      <a href="index.html" class="logout-btn" style="text-decoration: none; background: #28a745; padding: 0.5rem 1.5rem; border-radius: 5px; color: white; display: inline-block;">🏠 Home</a>
+      <button class="logout-btn" id="logout-btn">Logout</button>
+    </div>
   </div>
 
   <div class="kitchen-stats">
